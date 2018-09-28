@@ -22,7 +22,7 @@ public class CrawlDaddyTests {
 
     @Test
     public void test404() {
-        CrawldaddyResult cdr = doCrawl("http://example.org/this-no-exist");
+        CrawldaddyResult cdr = doCrawl("http://example.org/this-is-a-404");
         assertNull("Crawling non-existent resource returns non-null result", cdr);
     }
     

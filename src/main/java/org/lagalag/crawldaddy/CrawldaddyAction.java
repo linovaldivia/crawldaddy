@@ -1,7 +1,7 @@
 package org.lagalag.crawldaddy;
 
 import java.io.IOException;
-import java.util.concurrent.RecursiveTask;
+import java.util.concurrent.RecursiveAction;
 
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
@@ -9,32 +9,44 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-public class CrawldaddyTask extends RecursiveTask<CrawldaddyResult> {
+public class CrawldaddyAction extends RecursiveAction {
     private static final long serialVersionUID = 1L;
-    private String url;
     
-    public CrawldaddyTask(String url) {
+    private String url;
+    private CrawldaddyResult result;
+
+    public CrawldaddyAction(String url) {
         this.url = url;
     }
     
+    /* Used only when following links from a page that has been downloaded */
+    private CrawldaddyAction(String url, CrawldaddyResult result) {
+        this.url = url;
+        this.result = result;
+    }
+    
+    public CrawldaddyResult getResult() {
+        return this.result;
+    }
+    
     @Override
-    protected CrawldaddyResult compute() {
+    protected void compute() {
         if (url != null) {
             try {
                 Document doc = Jsoup.connect(url).get();
                 
-                CrawldaddyResult cdr = new CrawldaddyResult(url);
+                if (result == null) {
+                    result = new CrawldaddyResult(url);
+                }
                 Elements ahrefs = doc.select("a[href]");
                 for (Element e : ahrefs) {
                     // TODO increment only for each link that has been visited (even attempted visits to broken links)
-                    cdr.incrementTotalLinks();
+                    result.incrementTotalLinks();
                 }
                 Elements scripts = doc.select("script[src]");
                 for (Element s : scripts) {
-                    cdr.addScript(s.attr("abs:src"));
+                    result.addScript(s.attr("abs:src"));
                 }
-                
-                return cdr;
             } catch (IllegalArgumentException e) {
                 System.err.println("Unacceptable url: " + url);
             } catch (HttpStatusException e) {
@@ -47,7 +59,5 @@ public class CrawldaddyTask extends RecursiveTask<CrawldaddyResult> {
                 System.err.println("Unable to GET " + url + ": " + e.getMessage());
             }
         }
-        
-        return null;
     }
 }
