@@ -3,11 +3,11 @@ package org.lagalag.crawldaddy;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class CrawldaddyResult {
     private String url;
-    private AtomicInteger totalLinkCount = new AtomicInteger(0);
+    private Set<String> allLinks = ConcurrentHashMap.newKeySet();
+    private Set<String> extLinks = ConcurrentHashMap.newKeySet();
     private Set<String> brokenLinks = ConcurrentHashMap.newKeySet();
     private Set<String> externalScripts = ConcurrentHashMap.newKeySet();
     
@@ -19,12 +19,24 @@ public class CrawldaddyResult {
         return url;
     }
     
-    public int getTotalLinkCount() {
-        return totalLinkCount.get();
+    public Set<String> getAllLinks() {
+        return Collections.unmodifiableSet(allLinks);
     }
     
-    public int incrementTotalLinks() {
-        return this.totalLinkCount.incrementAndGet();
+    public void addLink(String link) {
+        this.allLinks.add(link);
+    }
+    
+    public boolean hasLink(String link) {
+        return this.allLinks.contains(link);
+    }
+    
+    public Set<String> getExternalLinks() {
+        return Collections.unmodifiableSet(extLinks);
+    }
+    
+    public void addExternalLink(String link) {
+        this.extLinks.add(link);
     }
     
     public Set<String> getBrokenLinks() {
@@ -39,7 +51,7 @@ public class CrawldaddyResult {
         return Collections.unmodifiableSet(externalScripts);
     }
     
-    public void addScript(String script) {
+    public void addExternalScript(String script) {
         this.externalScripts.add(script);
     }
 }

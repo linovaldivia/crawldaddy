@@ -1,5 +1,6 @@
 package org.lagalag.crawldaddy;
 
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
@@ -21,6 +22,7 @@ public class Crawldaddy {
             @Override
             public CrawldaddyResult call() throws Exception {
                 CrawldaddyAction cdAction = new CrawldaddyAction(url);
+                // Initiate the crawl and wait for the result.
                 ForkJoinPool.commonPool().invoke(cdAction);
                 return cdAction.getResult();
             }
@@ -28,10 +30,28 @@ public class Crawldaddy {
     }
     
     private static void showResults(CrawldaddyResult result) {
-        System.out.println("RESULTS: ");
-        System.out.println("Total number of links : " + result.getTotalLinkCount());
-        System.out.println("Number of broken links: " + result.getBrokenLinks().size());
-        System.out.println("Number of ext scripts : " + result.getExternalScripts().size());
+        Set<String> allLinks = result.getAllLinks();
+        Set<String> extLinks = result.getExternalLinks();
+        Set<String> brokenLinks = result.getBrokenLinks();
+        Set<String> extScripts = result.getExternalScripts();
+        
+        System.out.println("RESULTS:");
+        System.out.println("Total number of unique links : " + allLinks.size());
+        System.out.println("   Number of external links  : " + extLinks.size());
+        System.out.println("Number of broken links       : " + brokenLinks.size());
+        System.out.println("Number of ext scripts        : " + extScripts.size());
+        showSetContents("EXTERNAL LINKS", extLinks);
+        showSetContents("BROKEN LINKS", brokenLinks);
+        showSetContents("EXTERNAL SCRIPTS", extScripts);
+    }
+    
+    private static void showSetContents(String title, Set<String> set) {
+        if (set.size() > 0) {
+            System.out.println(title + " (" + set.size() + "): ");
+            for (String s : set) {
+                System.out.println(s);
+            }
+        }
     }
     
     public static void main(String[] args) {
