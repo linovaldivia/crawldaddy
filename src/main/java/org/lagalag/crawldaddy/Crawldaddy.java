@@ -33,13 +33,12 @@ public class Crawldaddy {
         if (result == null) {
             return;
         }
-        Set<String> allLinks = result.getAllLinks();
         Set<String> extLinks = result.getExternalLinks();
         Set<String> brokenLinks = result.getBrokenLinks();
         Set<String> extScripts = result.getExternalScripts();
         
         System.out.println("RESULTS:");
-        System.out.println("Total number of unique links : " + allLinks.size());
+        System.out.println("Total number of unique links : " + result.getTotalLinkCount());
         System.out.println("   Number of external links  : " + extLinks.size());
         System.out.println("Number of broken links       : " + brokenLinks.size());
         System.out.println("Number of ext scripts        : " + extScripts.size());

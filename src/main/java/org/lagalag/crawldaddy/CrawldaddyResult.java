@@ -6,10 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class CrawldaddyResult {
     private String url;
-    private Set<String> allLinks = ConcurrentHashMap.newKeySet();
     // TODO still need CHM or regular HS ok?
-    // TODO can we just use allLinks to check for visited status?
-    private Set<String> visitedLinks = ConcurrentHashMap.newKeySet();
+    private Set<String> intLinks = ConcurrentHashMap.newKeySet();
     private Set<String> extLinks = ConcurrentHashMap.newKeySet();
     private Set<String> brokenLinks = ConcurrentHashMap.newKeySet();
     private Set<String> externalScripts = ConcurrentHashMap.newKeySet();
@@ -22,28 +20,28 @@ public class CrawldaddyResult {
         return url;
     }
     
-    public Set<String> getAllLinks() {
-        return Collections.unmodifiableSet(allLinks);
+    public int getTotalLinkCount() {
+        return getInternalLinkCount() + getExternalLinkCount() + getBrokenLinkCount();
     }
     
-    public synchronized boolean checkAndAddLink(String link) {
-        if (allLinks.contains(link)) {
+    public Set<String> getInternalLinks() {
+        return Collections.unmodifiableSet(intLinks);
+    }
+    
+    public synchronized boolean checkAndAddInternalLink(String link) {
+        if (intLinks.contains(link)) {
             return false;
         }
-        allLinks.add(link);
+        intLinks.add(link);
         return true;
     }
     
-    public synchronized boolean checkAndAddVisitedLink(String link) {
-        if (visitedLinks.contains(link)) {
-            return false;
-        }
-        visitedLinks.add(link);
-        return true;
+    public boolean hasInternalLink(String link) {
+        return intLinks.contains(link);
     }
     
-    public boolean hasVisitedLink(String link) {
-        return visitedLinks.contains(link);
+    public int getInternalLinkCount() {
+        return intLinks.size();
     }
     
     public Set<String> getExternalLinks() {
@@ -54,6 +52,10 @@ public class CrawldaddyResult {
         extLinks.add(link);
     }
     
+    public int getExternalLinkCount() {
+        return extLinks.size();
+    }
+    
     public Set<String> getBrokenLinks() {
         return Collections.unmodifiableSet(brokenLinks);
     }
@@ -62,11 +64,19 @@ public class CrawldaddyResult {
         brokenLinks.add(brokenLink);
     }
     
+    public int getBrokenLinkCount() {
+        return brokenLinks.size();
+    }
+    
     public Set<String> getExternalScripts() {
         return Collections.unmodifiableSet(externalScripts);
     }
     
     public void addExternalScript(String script) {
         externalScripts.add(script);
+    }
+    
+    public int getExternalScriptsCount() {
+        return externalScripts.size();
     }
 }

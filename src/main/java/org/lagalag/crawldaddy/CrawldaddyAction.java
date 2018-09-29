@@ -38,14 +38,15 @@ public class CrawldaddyAction extends RecursiveAction {
         if (url == null) {
             return;
         }
-        // TODO add initial url to list of visited links
+        
         if (result != null) {
-            if (!result.checkAndAddVisitedLink(url)) {
+            if (!result.checkAndAddInternalLink(url)) {
                 // This link has already been visited by somebody else -- bail out.
                 return;
             }
-            System.out.println(Thread.currentThread().getName() + ": VISITED: " + url);
         }
+
+        System.out.println(Thread.currentThread().getName() + ": VISITING: " + url);
         try {
             Document doc = Jsoup.connect(url).get();
             
@@ -61,14 +62,14 @@ public class CrawldaddyAction extends RecursiveAction {
             Elements ahrefs = doc.select("a[href]");
             for (Element e : ahrefs) {
                 String link = canonicalize(e.attr("abs:href"));
-                if (!result.checkAndAddLink(link)) {
-                    // No need to re-process a link.
+                
+                if (this.url.equalsIgnoreCase(link)) {
                     continue;
                 }
                 
                 if (getDomain(link).equals(inputDomain)) {
                     // It's an internal link, but have we visited it?
-                    if (!result.hasVisitedLink(link)) {
+                    if (!result.hasInternalLink(link)) {
                         linksToFollow.add(new CrawldaddyAction(link, result));
                     }
                 } else {

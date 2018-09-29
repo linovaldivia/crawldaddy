@@ -33,12 +33,14 @@ public class CrawldaddyTests {
         assertNotNull("Crawling url=" + urlToTest + " returns null result", cdr);
         
         assertEquals(urlToTest, cdr.getUrl());
-        Set<String> allLinks = cdr.getAllLinks();
-        assertNotNull("Set of all links is null for url=" + urlToTest, allLinks);
-        assertNotEquals("No links found in url=" + urlToTest, allLinks.size(), 0);
+        Set<String> intLinks = cdr.getInternalLinks();
+        assertNotNull("Set of internal links is null for url=" + urlToTest, intLinks);
+        assertTrue("No internal links found", intLinks.size() > 0);
+        assertTrue("Num internal links > Num all links", intLinks.size() <= cdr.getTotalLinkCount());
         Set<String> extLinks = cdr.getExternalLinks();
         assertNotNull("Set of external links is null for url=" + urlToTest, extLinks);
-        assertTrue("Num external links > Num all links", extLinks.size() <= allLinks.size());
+        assertTrue("No external links found", extLinks.size() > 0);
+        assertTrue("Num external links > Num all links", extLinks.size() <= cdr.getTotalLinkCount());
         Set<String> brokenLinks = cdr.getBrokenLinks();
         assertNotNull("Set of broken links is null for url=" + urlToTest, brokenLinks);
         Set<String> scripts = cdr.getExternalScripts();
