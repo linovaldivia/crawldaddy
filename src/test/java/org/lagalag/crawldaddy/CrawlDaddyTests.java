@@ -7,7 +7,7 @@ import java.util.concurrent.Future;
 
 import org.junit.Test;
 
-public class CrawlDaddyTests {
+public class CrawldaddyTests {
     @Test
     public void testNullUrl() {
         CrawldaddyResult cdr = doCrawl(null);
