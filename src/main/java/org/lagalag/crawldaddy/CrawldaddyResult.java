@@ -4,11 +4,11 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class CrawldaddyResult {
     private String url;
-    // TODO still need CHM or regular HS ok?
-    private Set<String> intLinks = ConcurrentHashMap.newKeySet();
+    private ConcurrentMap<String,Boolean> intLinks = new ConcurrentHashMap<>();
     private Set<String> extLinks = ConcurrentHashMap.newKeySet();
     private Set<String> brokenLinks = ConcurrentHashMap.newKeySet();
     private Set<String> externalScripts = ConcurrentHashMap.newKeySet();
@@ -35,19 +35,18 @@ public class CrawldaddyResult {
     }
     
     public Set<String> getInternalLinks() {
-        return Collections.unmodifiableSet(intLinks);
+        return Collections.unmodifiableSet(intLinks.keySet());
     }
     
-    public synchronized boolean checkAndAddInternalLink(String link) {
-        if (intLinks.contains(link)) {
-            return false;
-        }
-        intLinks.add(link);
-        return true;
+    public boolean checkAndAddInternalLink(String link) {
+        // Return true only if the given link is not already in the map 
+        // (i.e. previous value before putIfAbsent(link) call is null).
+        // ConcurrentMap gives us the guarantee that this "check-and-set" operation will be atomic.
+        return (intLinks.putIfAbsent(link, Boolean.TRUE) == null);
     }
     
     public boolean hasInternalLink(String link) {
-        return intLinks.contains(link);
+        return intLinks.containsKey(link);
     }
     
     public int getInternalLinkCount() {

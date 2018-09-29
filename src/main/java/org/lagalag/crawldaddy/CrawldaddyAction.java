@@ -46,12 +46,12 @@ public class CrawldaddyAction extends RecursiveAction {
         
         if (result != null) {
             if (!result.checkAndAddInternalLink(url)) {
-                // This link has already been visited by somebody else -- bail out.
+                // This link has already been visited -- bail out.
                 return;
             }
         }
 
-        System.out.println(Thread.currentThread().getName() + ": VISITING: " + url);
+        System.out.printf("%32s: VISITING: %s%n", Thread.currentThread().getName(), url);
         Instant startTime = Instant.now();
         try {
             Document doc = Jsoup.connect(url).get();
@@ -62,7 +62,6 @@ public class CrawldaddyAction extends RecursiveAction {
             
             // Create RecursiveActions to follow links only if they are within the same domain as the input url.
             String inputDomain = getDomain(url);
-            // System.out.printf("Input url: %s, domain: %s\n", url, inputDomain);
             
             Map<String,CrawldaddyAction> linksToFollow = new HashMap<>();
             Elements ahrefs = doc.select("a[href]");
