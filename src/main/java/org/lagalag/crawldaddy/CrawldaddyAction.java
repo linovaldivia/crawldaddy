@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.RecursiveAction;
@@ -15,6 +16,11 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+/**
+ * Retrieves and processes the document at a specified URL, extracting links and external javascript references.
+ * Internal links (e.g. links that are in the same domain as the initial URL) will also be retrieved and processed, 
+ * possibly in another thread.
+ */
 public class CrawldaddyAction extends RecursiveAction {
     private static final long serialVersionUID = 1L;
     
@@ -60,41 +66,11 @@ public class CrawldaddyAction extends RecursiveAction {
                 result = new CrawldaddyResult(url);
             }
             
-            // Create RecursiveActions to follow links only if they are within the same domain as the input url.
-            String inputDomain = getDomain(url);
-            
-            Map<String,CrawldaddyAction> linksToFollow = new HashMap<>();
-            Elements ahrefs = doc.select("a[href]");
-            for (Element e : ahrefs) {
-                String link = canonicalize(e.attr("abs:href"));
-                
-                // If the link is a self-reference, ignore.
-                if (this.url.equalsIgnoreCase(link)) {
-                    continue;
-                }
-                
-                // If this link has already been processed (within the same document), ignore.
-                if (linksToFollow.containsKey(link)) {
-                    continue;
-                }
-                
-                if (getDomain(link).equals(inputDomain)) {
-                    // It's an internal link, but have we visited it?
-                    if (!result.hasInternalLink(link)) {
-                        linksToFollow.put(link, new CrawldaddyAction(link, result));
-                    }
-                } else {
-                    // System.out.println("External link: " + link);
-                    result.addExternalLink(link);
-                }
-            }
-            Elements scripts = doc.select("script[src]");
-            for (Element s : scripts) {
-                result.addExternalScript(s.attr("abs:src"));
-            }
+            Collection<CrawldaddyAction> linksToFollow = extractLinks(doc.select("a[href]"), getDomain(url));
+            extractExternalScripts(doc.select("script[src]"));
             
             if (linksToFollow.size() > 0) {
-                invokeAll(linksToFollow.values());
+                invokeAll(linksToFollow);
             }
         } catch (IllegalArgumentException e) {
             System.err.println("Detected malformed url: " + url);
@@ -113,6 +89,41 @@ public class CrawldaddyAction extends RecursiveAction {
             if (this.isInitiatingAction && (result != null)) {
                 result.setCrawlTime(Duration.between(startTime, Instant.now()));
             }
+        }
+    }
+    
+    private Collection<CrawldaddyAction> extractLinks(Elements elems, String inputDomain) {
+        Map<String,CrawldaddyAction> linksToFollow = new HashMap<>();
+        for (Element e : elems) {
+            String link = canonicalize(e.attr("abs:href"));
+            
+            // If the link is a self-reference, ignore.
+            if (this.url.equalsIgnoreCase(link)) {
+                continue;
+            }
+            
+            // If this link has already been processed (within the same document), ignore.
+            if (linksToFollow.containsKey(link)) {
+                continue;
+            }
+            
+            // Create RecursiveActions to follow links only if they are within the same domain as the input url.
+            if (getDomain(link).equals(inputDomain)) {
+                // It's an internal link, but have we visited it?
+                if (!result.hasInternalLink(link)) {
+                    linksToFollow.put(link, new CrawldaddyAction(link, result));
+                }
+            } else {
+                // System.out.println("External link: " + link);
+                result.addExternalLink(link);
+            }
+        }
+        return linksToFollow.values();
+    }
+    
+    private void extractExternalScripts(Elements scripts) {
+        for (Element s : scripts) {
+            result.addExternalScript(s.attr("abs:src"));
         }
     }
     
