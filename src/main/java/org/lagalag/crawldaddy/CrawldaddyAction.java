@@ -3,6 +3,8 @@ package org.lagalag.crawldaddy;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.RecursiveAction;
@@ -18,15 +20,18 @@ public class CrawldaddyAction extends RecursiveAction {
     
     private String url;
     private CrawldaddyResult result;
+    private boolean isInitiatingAction;
 
     public CrawldaddyAction(String url) {
         this.url = url;
+        this.isInitiatingAction = true;
     }
     
     /* Used only when following links from a page that has been downloaded */
     private CrawldaddyAction(String url, CrawldaddyResult result) {
         this.url = url;
         this.result = result;
+        this.isInitiatingAction = false;
     }
     
     public CrawldaddyResult getResult() {
@@ -47,6 +52,7 @@ public class CrawldaddyAction extends RecursiveAction {
         }
 
         System.out.println(Thread.currentThread().getName() + ": VISITING: " + url);
+        Instant startTime = Instant.now();
         try {
             Document doc = Jsoup.connect(url).get();
             
@@ -104,6 +110,10 @@ public class CrawldaddyAction extends RecursiveAction {
             }
         } catch (IOException e) {
             System.err.println("Unable to GET " + url + ": " + e.getMessage());
+        } finally {
+            if (this.isInitiatingAction && (result != null)) {
+                result.setCrawlTime(Duration.between(startTime, Instant.now()));
+            }
         }
     }
     

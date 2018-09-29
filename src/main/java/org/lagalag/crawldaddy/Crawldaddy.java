@@ -1,5 +1,6 @@
 package org.lagalag.crawldaddy;
 
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -45,6 +46,7 @@ public class Crawldaddy {
         showSetContents("EXTERNAL LINKS", extLinks);
         showSetContents("BROKEN LINKS", brokenLinks);
         showSetContents("EXTERNAL SCRIPTS", extScripts);
+        showCrawlTime(result.getCrawlTime());
     }
     
     private static void showSetContents(String title, Set<String> set) {
@@ -54,6 +56,22 @@ public class Crawldaddy {
                 System.out.println(s);
             }
         }
+    }
+    
+    private static void showCrawlTime(Duration crawlTime) {
+        StringBuilder ct = new StringBuilder("Total crawl time: ");
+        if (crawlTime.toHours() > 0) {
+            ct.append(crawlTime.toHours()).append(" hour(s) ");
+        } else if (crawlTime.toMinutes() > 0 ) {
+            ct.append(crawlTime.toMinutes()).append(" minute(s) ");
+        } 
+        long millis = crawlTime.toMillis();
+        long secs =  millis / 1000;
+        millis %= 1000;
+        if (secs > 0) {
+            ct.append(secs).append(".").append(millis).append(" second(s) ");
+        }
+        System.out.println(ct.toString());
     }
     
     public static void main(String[] args) {

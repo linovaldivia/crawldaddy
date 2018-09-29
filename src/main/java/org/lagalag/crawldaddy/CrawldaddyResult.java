@@ -1,5 +1,6 @@
 package org.lagalag.crawldaddy;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,9 +12,18 @@ public class CrawldaddyResult {
     private Set<String> extLinks = ConcurrentHashMap.newKeySet();
     private Set<String> brokenLinks = ConcurrentHashMap.newKeySet();
     private Set<String> externalScripts = ConcurrentHashMap.newKeySet();
+    private Duration crawlTime;
     
     public CrawldaddyResult(String url) {
         this.url = url;
+    }
+    
+    public void setCrawlTime(Duration crawlTime) {
+        this.crawlTime = crawlTime;
+    }
+    
+    public Duration getCrawlTime() {
+        return this.crawlTime;
     }
     
     public String getUrl() {

@@ -2,6 +2,7 @@ package org.lagalag.crawldaddy;
 
 import static org.junit.Assert.*;
 
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.Future;
 
@@ -46,6 +47,10 @@ public class CrawldaddyTests {
         Set<String> scripts = cdr.getExternalScripts();
         assertNotNull("Set of scripts is null for url=" + urlToTest, scripts);
         assertNotEquals("No scripts found in url=" + urlToTest, scripts.size(), 0);
+        Duration crawlTime = cdr.getCrawlTime();
+        assertNotNull("Null crawl time", crawlTime);
+        assertFalse("Total crawl time is 0", crawlTime.isZero());
+        assertFalse("Total crawl time is negative", crawlTime.isNegative());
     }
     
     private CrawldaddyResult doCrawl(String url) {
