@@ -30,6 +30,9 @@ public class Crawldaddy {
     }
     
     private static void showResults(CrawldaddyResult result) {
+        if (result == null) {
+            return;
+        }
         Set<String> allLinks = result.getAllLinks();
         Set<String> extLinks = result.getExternalLinks();
         Set<String> brokenLinks = result.getBrokenLinks();

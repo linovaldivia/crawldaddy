@@ -28,7 +28,7 @@ public class CrawlDaddyTests {
     
     @Test
     public void testCrawlKnownSite1() {
-        String urlToTest = "https://www.fgc.cat/";
+        String urlToTest = "https://www.mizcracker.com";
         CrawldaddyResult cdr = doCrawl(urlToTest);
         assertNotNull("Crawling url=" + urlToTest + " returns null result", cdr);
         

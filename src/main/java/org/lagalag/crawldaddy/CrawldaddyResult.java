@@ -7,6 +7,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CrawldaddyResult {
     private String url;
     private Set<String> allLinks = ConcurrentHashMap.newKeySet();
+    // TODO still need CHM or regular HS ok?
+    // TODO can we just use allLinks to check for visited status?
+    private Set<String> visitedLinks = ConcurrentHashMap.newKeySet();
     private Set<String> extLinks = ConcurrentHashMap.newKeySet();
     private Set<String> brokenLinks = ConcurrentHashMap.newKeySet();
     private Set<String> externalScripts = ConcurrentHashMap.newKeySet();
@@ -23,12 +26,24 @@ public class CrawldaddyResult {
         return Collections.unmodifiableSet(allLinks);
     }
     
-    public void addLink(String link) {
-        this.allLinks.add(link);
+    public synchronized boolean checkAndAddLink(String link) {
+        if (allLinks.contains(link)) {
+            return false;
+        }
+        allLinks.add(link);
+        return true;
     }
     
-    public boolean hasLink(String link) {
-        return this.allLinks.contains(link);
+    public synchronized boolean checkAndAddVisitedLink(String link) {
+        if (visitedLinks.contains(link)) {
+            return false;
+        }
+        visitedLinks.add(link);
+        return true;
+    }
+    
+    public boolean hasVisitedLink(String link) {
+        return visitedLinks.contains(link);
     }
     
     public Set<String> getExternalLinks() {
@@ -36,7 +51,7 @@ public class CrawldaddyResult {
     }
     
     public void addExternalLink(String link) {
-        this.extLinks.add(link);
+        extLinks.add(link);
     }
     
     public Set<String> getBrokenLinks() {
@@ -44,7 +59,7 @@ public class CrawldaddyResult {
     }
     
     public void addBrokenLink(String brokenLink) {
-        this.brokenLinks.add(brokenLink);
+        brokenLinks.add(brokenLink);
     }
     
     public Set<String> getExternalScripts() {
@@ -52,6 +67,6 @@ public class CrawldaddyResult {
     }
     
     public void addExternalScript(String script) {
-        this.externalScripts.add(script);
+        externalScripts.add(script);
     }
 }
