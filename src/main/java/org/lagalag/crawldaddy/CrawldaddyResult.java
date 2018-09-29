@@ -6,6 +6,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * Holds the results of the web crawl.
+ */
 public class CrawldaddyResult {
     private String url;
     private ConcurrentMap<String,Boolean> intLinks = new ConcurrentHashMap<>();

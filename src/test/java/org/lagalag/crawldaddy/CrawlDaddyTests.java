@@ -8,6 +8,9 @@ import java.util.concurrent.Future;
 
 import org.junit.Test;
 
+/**
+ * Good ole junit tests to exercise our web crawling.
+ */
 public class CrawldaddyTests {
     @Test
     public void testNullUrl() {
