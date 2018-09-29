@@ -3,8 +3,8 @@ package org.lagalag.crawldaddy;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.RecursiveAction;
 
 import org.jsoup.HttpStatusException;
@@ -58,19 +58,25 @@ public class CrawldaddyAction extends RecursiveAction {
             String inputDomain = getDomain(url);
             // System.out.printf("Input url: %s, domain: %s\n", url, inputDomain);
             
-            List<CrawldaddyAction> linksToFollow = new ArrayList<>();
+            Map<String,CrawldaddyAction> linksToFollow = new HashMap<>();
             Elements ahrefs = doc.select("a[href]");
             for (Element e : ahrefs) {
                 String link = canonicalize(e.attr("abs:href"));
                 
+                // If the link is a self-reference, ignore.
                 if (this.url.equalsIgnoreCase(link)) {
+                    continue;
+                }
+                
+                // If this link has already been processed (within the same document), ignore.
+                if (linksToFollow.containsKey(link)) {
                     continue;
                 }
                 
                 if (getDomain(link).equals(inputDomain)) {
                     // It's an internal link, but have we visited it?
                     if (!result.hasInternalLink(link)) {
-                        linksToFollow.add(new CrawldaddyAction(link, result));
+                        linksToFollow.put(link, new CrawldaddyAction(link, result));
                     }
                 } else {
                     // System.out.println("External link: " + link);
@@ -82,9 +88,8 @@ public class CrawldaddyAction extends RecursiveAction {
                 result.addExternalScript(s.attr("abs:src"));
             }
             
-            // System.out.printf(Thread.currentThread().getName() + ": Total links so far: %d, links to follow: %d\n", result.getAllLinks().size(), linksToFollow.size());
             if (linksToFollow.size() > 0) {
-                invokeAll(linksToFollow);
+                invokeAll(linksToFollow.values());
             }
         } catch (IllegalArgumentException e) {
             System.err.println("Detected malformed url: " + url);
