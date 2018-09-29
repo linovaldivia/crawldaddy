@@ -38,6 +38,7 @@ public class CrawldaddyAction extends RecursiveAction {
         if (url == null) {
             return;
         }
+        // TODO add initial url to list of visited links
         if (result != null) {
             if (!result.checkAndAddVisitedLink(url)) {
                 // This link has already been visited by somebody else -- bail out.
@@ -136,11 +137,6 @@ public class CrawldaddyAction extends RecursiveAction {
         int anchorIdx = retUrl.indexOf('#');
         if (anchorIdx != -1) {
             retUrl = retUrl.substring(0, anchorIdx);
-        }
-        
-        // Add trailing slash only if the url doesn't already have one AND there are no request params.
-        if ((!retUrl.endsWith("/") && (retUrl.indexOf('?') == -1))) {
-            retUrl = retUrl + "/";
         }
         
         return retUrl;
