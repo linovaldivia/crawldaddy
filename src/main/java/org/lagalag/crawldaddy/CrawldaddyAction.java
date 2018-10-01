@@ -27,17 +27,20 @@ public class CrawldaddyAction extends RecursiveAction {
     private String url;
     private CrawldaddyResult result;
     private boolean isInitiatingAction;
+    private final int maxNumInternalLinks;
 
-    public CrawldaddyAction(String url) {
+    public CrawldaddyAction(String url, int maxNumInternalLinks) {
         this.url = url;
         this.isInitiatingAction = true;
+        this.maxNumInternalLinks = maxNumInternalLinks;
     }
     
     /* Used only when following links from a page that has been downloaded */
-    private CrawldaddyAction(String url, CrawldaddyResult result) {
+    private CrawldaddyAction(String url, CrawldaddyResult result, int maxNumInternalLinks) {
         this.url = url;
         this.result = result;
         this.isInitiatingAction = false;
+        this.maxNumInternalLinks = maxNumInternalLinks;
     }
     
     public CrawldaddyResult getResult() {
@@ -51,8 +54,8 @@ public class CrawldaddyAction extends RecursiveAction {
         }
         
         if (result != null) {
-            if (!result.checkAndAddInternalLink(url)) {
-                // This link has already been visited -- bail out.
+            if (!result.checkAndAddInternalLink(url, maxNumInternalLinks)) {
+                // This link has already been visited or we've hit the internal links limit -- bail out.
                 return;
             }
         }
@@ -96,6 +99,10 @@ public class CrawldaddyAction extends RecursiveAction {
         Map<String,CrawldaddyAction> linksToFollow = new HashMap<>();
         for (Element e : elems) {
             String link = canonicalize(e.attr("abs:href"));
+            // Some sites have empty hrefs apparently.
+            if (link.trim().length() == 0) {
+                continue;
+            }
             
             // If the link is a self-reference, ignore.
             if (this.url.equalsIgnoreCase(link)) {
@@ -107,11 +114,10 @@ public class CrawldaddyAction extends RecursiveAction {
                 continue;
             }
             
-            // Create RecursiveActions to follow links only if they are within the same domain as the input url.
-            if (getDomain(link).equals(inputDomain)) {
-                // It's an internal link, but have we visited it?
+            if (isInDomain(link, inputDomain)) {
+                // It's an internal link, but have we already visited it?
                 if (!result.hasInternalLink(link)) {
-                    linksToFollow.put(link, new CrawldaddyAction(link, result));
+                    linksToFollow.put(link, new CrawldaddyAction(link, result, maxNumInternalLinks));
                 }
             } else {
                 // System.out.println("External link: " + link);
@@ -125,6 +131,10 @@ public class CrawldaddyAction extends RecursiveAction {
         for (Element s : scripts) {
             result.addExternalScript(s.attr("abs:src"));
         }
+    }
+    
+    private boolean isInDomain(String link, String inputDomain) {
+        return getDomain(link).equals(inputDomain);
     }
     
     private String getDomain(String url) {

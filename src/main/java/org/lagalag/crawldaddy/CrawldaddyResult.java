@@ -41,11 +41,14 @@ public class CrawldaddyResult {
         return Collections.unmodifiableSet(intLinks.keySet());
     }
     
-    public boolean checkAndAddInternalLink(String link) {
-        // Return true only if the given link is not already in the map 
-        // (i.e. previous value before putIfAbsent(link) call is null).
-        // ConcurrentMap gives us the guarantee that this "check-and-set" operation will be atomic.
-        return (intLinks.putIfAbsent(link, Boolean.TRUE) == null);
+    public boolean checkAndAddInternalLink(String link, int maxInternalLinks) {
+        synchronized(intLinks) {
+            if (intLinks.size() < maxInternalLinks) {
+                // Return true only if the given link is not already in the map 
+                return (intLinks.putIfAbsent(link, Boolean.TRUE) == null);
+            }
+        }
+        return false;
     }
     
     public boolean hasInternalLink(String link) {

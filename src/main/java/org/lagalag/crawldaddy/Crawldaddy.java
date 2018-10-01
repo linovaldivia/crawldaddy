@@ -12,17 +12,25 @@ import java.util.concurrent.Future;
  *
  */
 public class Crawldaddy {
+    private static final int DEFAULT_MAX_NUM_INTERNAL_LINKS = 3000;
+    private final int maxNumInternalLinks;
     private String url;
-    
+
     public Crawldaddy(String url) {
         this.url = url;
+        this.maxNumInternalLinks = DEFAULT_MAX_NUM_INTERNAL_LINKS;
+    }
+    
+    public Crawldaddy(String url, int maxNumInternalLinks) {
+        this.url = url;
+        this.maxNumInternalLinks = maxNumInternalLinks;
     }
     
     public Future<CrawldaddyResult> startCrawl() {
         return ForkJoinPool.commonPool().submit(new Callable<CrawldaddyResult>() {
             @Override
             public CrawldaddyResult call() throws Exception {
-                CrawldaddyAction cdAction = new CrawldaddyAction(url);
+                CrawldaddyAction cdAction = new CrawldaddyAction(url, maxNumInternalLinks);
                 // Initiate the crawl and wait for the result.
                 ForkJoinPool.commonPool().invoke(cdAction);
                 return cdAction.getResult();
@@ -38,7 +46,7 @@ public class Crawldaddy {
         Set<String> brokenLinks = result.getBrokenLinks();
         Set<String> extScripts = result.getExternalScripts();
         
-        System.out.println("RESULTS:");
+        System.out.println("RESULTS for " + result.getUrl() + ":");
         System.out.println("Total number of unique links : " + result.getTotalLinkCount());
         System.out.println("   Number of external links  : " + extLinks.size());
         System.out.println("Number of broken links       : " + brokenLinks.size());

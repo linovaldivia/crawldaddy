@@ -56,9 +56,28 @@ public class CrawldaddyTests {
         assertFalse("Total crawl time is negative", crawlTime.isNegative());
     }
     
+    @Test
+    public void testCrawlKnownSite2() {
+        String urlToTest = "https://www.kimchithedragqueen.com/";
+        final int maxInternalLinks = 3;
+        CrawldaddyResult cdr = doCrawl(urlToTest, maxInternalLinks);
+        assertNotNull("Crawling url=" + urlToTest + " returns null result", cdr);
+        
+        assertEquals(urlToTest, cdr.getUrl());
+        Set<String> intLinks = cdr.getInternalLinks();
+        assertNotNull("Set of internal links is null for url=" + urlToTest, intLinks);
+        assertTrue("No internal links found", intLinks.size() > 0);
+        int numIntLinks = intLinks.size();
+        assertTrue("Num internal links (" + numIntLinks + ") > max internal links (" + maxInternalLinks + ")", numIntLinks <= maxInternalLinks);
+    }
+
     private CrawldaddyResult doCrawl(String url) {
+        return doCrawl(url, null);
+    }
+    
+    private CrawldaddyResult doCrawl(String url, Integer maxNumInternalLinks) {
         System.out.println("Crawling: " + url);
-        Crawldaddy cd = new Crawldaddy(url);
+        Crawldaddy cd = ((maxNumInternalLinks == null) ? new Crawldaddy(url) : new Crawldaddy(url, maxNumInternalLinks));
         Future<CrawldaddyResult> cdf = cd.startCrawl();
         assertNotNull("Returned Future is null", cdf);
         try {
