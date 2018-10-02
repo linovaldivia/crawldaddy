@@ -25,15 +25,15 @@ public class CrawldaddyApp {
     public static final String CL_LONGOPT_SHOW_EXT_SCRIPTS = "extScripts";
     public static final String CL_LONGOPT_MAX_INT_LINKS = "maxIntLinks";
     
-    private Options createCLOptions() {
-        Options options = new Options();
-        options.addOption(Option.builder(CL_OPT_MAX_INT_LINKS).longOpt(CL_LONGOPT_MAX_INT_LINKS).hasArg().argName("MAX")
-                                .desc("Limit number of internal links followed (default=" + Crawldaddy.DEFAULT_MAX_INTERNAL_LINKS + ").").build());
-        options.addOption(Option.builder(CL_OPT_SHOW_EXT_SCRIPTS).longOpt(CL_LONGOPT_SHOW_EXT_SCRIPTS)
-                                .desc("Show external scripts encountered.").build());
-        options.addOption(Option.builder(CL_OPT_SHOW_EXT_LINKS).longOpt(CL_LONGOPT_SHOW_EXT_LINKS)
-                          .desc("Output only external links encountered.").build());
-        return options;
+    private static final Options COMMAND_LINE_OPTIONS;
+    static {
+        COMMAND_LINE_OPTIONS = new Options();
+        COMMAND_LINE_OPTIONS.addOption(Option.builder(CL_OPT_MAX_INT_LINKS).longOpt(CL_LONGOPT_MAX_INT_LINKS).hasArg().argName("MAX")
+                                             .desc("Limit number of internal links followed (default=" + CrawldaddyParams.DEFAULT_MAX_INTERNAL_LINKS + ").").build());
+        COMMAND_LINE_OPTIONS.addOption(Option.builder(CL_OPT_SHOW_EXT_SCRIPTS).longOpt(CL_LONGOPT_SHOW_EXT_SCRIPTS)
+                                             .desc("Show external scripts encountered.").build());
+        COMMAND_LINE_OPTIONS.addOption(Option.builder(CL_OPT_SHOW_EXT_LINKS).longOpt(CL_LONGOPT_SHOW_EXT_LINKS)
+                                             .desc("Show external links encountered.").build());
     }
 
     private void showResults(CrawldaddyResult result, CommandLine cl) {
@@ -84,62 +84,79 @@ public class CrawldaddyApp {
         System.out.println(ct.toString());
     }
     
-    private void showHelp(Options clOptions) {
+    private void showHelp() {
         HelpFormatter help = new HelpFormatter();
-        help.printHelp("crawldaddy [options] url-to-crawl", clOptions);
+        help.printHelp("crawldaddy [options] url-to-crawl", COMMAND_LINE_OPTIONS);
     }
     
     private int getMaxNumInternalLinks(String stringValue, int defaultValue) {
         try {
+            if (stringValue != null) {
+                stringValue = stringValue.trim();
+            }
             return Integer.parseUnsignedInt(stringValue);
         } catch (NumberFormatException e) {
             return defaultValue;
         }
     }
     
-    public int runApp(String[] args) {
-        Options clOptions = createCLOptions();
+    // Exposed as public to facilitate unit testing.
+    public CommandLine parseCommandLine(String[] args) {
         if (args.length == 0) {
-            showHelp(clOptions);
-            return 1;
+            return null;
         }
-        
-        String urlToCrawl = null;
-        int maxIntLinks = Crawldaddy.DEFAULT_MAX_INTERNAL_LINKS;
-        
+
         try {
             CommandLineParser clParser = new DefaultParser();
-            CommandLine cl = clParser.parse(clOptions, args);
-            if (cl.getArgs().length > 0) {
-                urlToCrawl = cl.getArgs()[0];
-            }
-            if (cl.hasOption(CL_OPT_MAX_INT_LINKS)) {
-                maxIntLinks = getMaxNumInternalLinks(cl.getOptionValue(CL_OPT_MAX_INT_LINKS), Crawldaddy.DEFAULT_MAX_INTERNAL_LINKS);
-            }
-            
-            System.out.println("Crawling " + urlToCrawl + "...");
-            Future<CrawldaddyResult> fresult = new Crawldaddy(urlToCrawl, maxIntLinks).startCrawl();
-            if (fresult != null) {
-                try {
-                    CrawldaddyResult result = fresult.get();
-                    showResults(result, cl);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                }
-            }
-            return 0;
+            return clParser.parse(COMMAND_LINE_OPTIONS, args);
         } catch(ParseException exp) {
-            System.out.println("Unexpected exception:" + exp.getMessage());
-            return 1;
+            System.err.println(exp.getMessage());
+        }
+        return null;
+    }
+    
+    // Exposed as public to facilitate unit testing.
+    public CrawldaddyParams createParams(CommandLine cl) {
+        if (cl == null) {
+            return null;
+        }
+        
+        CrawldaddyParams params = new CrawldaddyParams();
+        if (cl.getArgs().length > 0) {
+            params.setUrl(cl.getArgs()[0]);
+        }
+        
+        if (cl.hasOption(CL_OPT_MAX_INT_LINKS)) {
+            params.setMaxInternalLinks(getMaxNumInternalLinks(cl.getOptionValue(CL_OPT_MAX_INT_LINKS), 
+                                                              CrawldaddyParams.DEFAULT_MAX_INTERNAL_LINKS));
+        }
+        
+        return params;
+    }
+    
+    public void runApp(String[] args) {
+        CommandLine cl = parseCommandLine(args);
+        if (cl == null) {
+            showHelp();
+            return;
+        }
+        
+        CrawldaddyParams params = createParams(cl);
+        System.out.println("Crawling " + params.getUrl() + "...");
+        Future<CrawldaddyResult> fresult = new Crawldaddy(params).startCrawl();
+        if (fresult != null) {
+            try {
+                CrawldaddyResult result = fresult.get();
+                showResults(result, cl);
+            } catch (InterruptedException e) {
+                System.err.println("Thread interrupted exception: " + e.getMessage());
+            } catch (ExecutionException e) {
+                System.err.println("Unable to proceed: " + e.getMessage());
+            }
         }
     }
     
     public static void main(String[] args) {
-        int exitCode = new CrawldaddyApp().runApp(args);
-        if (exitCode != 0) {
-            System.exit(exitCode);
-        }
+        new CrawldaddyApp().runApp(args);
     }
 }
