@@ -18,12 +18,23 @@ import org.apache.commons.cli.ParseException;
  *
  */
 public class CrawldaddyApp {
-    private static final String CL_LONGOPT_SHOW_EXT_LINKS = "extLinks";
-    private static final String CL_LONGOPT_SHOW_EXT_SCRIPTS = "extScripts";
-    private static final String CL_LONGOPT_MAX_INT_LINKS = "maxIntLinks";
-    private static final String CL_OPT_SHOW_EXT_LINKS = "xl";
-    private static final String CL_OPT_SHOW_EXT_SCRIPTS = "xs";
-    private static final String CL_OPT_MAX_INT_LINKS = "m";
+    public static final String CL_OPT_SHOW_EXT_LINKS = "xl";
+    public static final String CL_OPT_SHOW_EXT_SCRIPTS = "xs";
+    public static final String CL_OPT_MAX_INT_LINKS = "m";
+    public static final String CL_LONGOPT_SHOW_EXT_LINKS = "extLinks";
+    public static final String CL_LONGOPT_SHOW_EXT_SCRIPTS = "extScripts";
+    public static final String CL_LONGOPT_MAX_INT_LINKS = "maxIntLinks";
+    
+    private Options createCLOptions() {
+        Options options = new Options();
+        options.addOption(Option.builder(CL_OPT_MAX_INT_LINKS).longOpt(CL_LONGOPT_MAX_INT_LINKS).hasArg().argName("MAX")
+                                .desc("Limit number of internal links followed (default=" + Crawldaddy.DEFAULT_MAX_INTERNAL_LINKS + ").").build());
+        options.addOption(Option.builder(CL_OPT_SHOW_EXT_SCRIPTS).longOpt(CL_LONGOPT_SHOW_EXT_SCRIPTS)
+                                .desc("Show external scripts encountered.").build());
+        options.addOption(Option.builder(CL_OPT_SHOW_EXT_LINKS).longOpt(CL_LONGOPT_SHOW_EXT_LINKS)
+                          .desc("Output only external links encountered.").build());
+        return options;
+    }
 
     private void showResults(CrawldaddyResult result, CommandLine cl) {
         if (result == null) {
@@ -73,21 +84,9 @@ public class CrawldaddyApp {
         System.out.println(ct.toString());
     }
     
-    private Options createCLOptions() {
-        Options options = new Options();
-        options.addOption(Option.builder(CL_OPT_MAX_INT_LINKS).longOpt(CL_LONGOPT_MAX_INT_LINKS).hasArg().argName("MAX")
-                                .desc("Limit number of internal links followed (default=" + Crawldaddy.DEFAULT_MAX_INTERNAL_LINKS + ").").build());
-        options.addOption(Option.builder(CL_OPT_SHOW_EXT_SCRIPTS).longOpt(CL_LONGOPT_SHOW_EXT_SCRIPTS)
-                                .desc("Show external scripts encountered.").build());
-        options.addOption(Option.builder(CL_OPT_SHOW_EXT_LINKS).longOpt(CL_LONGOPT_SHOW_EXT_LINKS)
-                          .desc("Output only external links encountered.").build());
-        return options;
-    }
-    
-    private void showHelpAndExit(Options clOptions) {
+    private void showHelp(Options clOptions) {
         HelpFormatter help = new HelpFormatter();
         help.printHelp("crawldaddy [options] url-to-crawl", clOptions);
-        System.exit(1);
     }
     
     private int getMaxNumInternalLinks(String stringValue, int defaultValue) {
@@ -98,10 +97,11 @@ public class CrawldaddyApp {
         }
     }
     
-    public void runApp(String[] args) {
+    public int runApp(String[] args) {
         Options clOptions = createCLOptions();
         if (args.length == 0) {
-            showHelpAndExit(clOptions);
+            showHelp(clOptions);
+            return 1;
         }
         
         String urlToCrawl = null;
@@ -121,20 +121,25 @@ public class CrawldaddyApp {
             Future<CrawldaddyResult> fresult = new Crawldaddy(urlToCrawl, maxIntLinks).startCrawl();
             if (fresult != null) {
                 try {
-                    showResults(fresult.get(), cl);
+                    CrawldaddyResult result = fresult.get();
+                    showResults(result, cl);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 } catch (ExecutionException e) {
                     e.printStackTrace();
                 }
             }
+            return 0;
         } catch(ParseException exp) {
             System.out.println("Unexpected exception:" + exp.getMessage());
-            System.exit(1);
+            return 1;
         }
     }
     
     public static void main(String[] args) {
-        new CrawldaddyApp().runApp(args);
+        int exitCode = new CrawldaddyApp().runApp(args);
+        if (exitCode != 0) {
+            System.exit(exitCode);
+        }
     }
 }
