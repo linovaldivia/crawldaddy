@@ -21,8 +21,10 @@ public class CrawldaddyParams {
         this.url = url;
     }
 
-    public void setMaxInternalLinks(int maxNumInternalLinks) {
-        this.maxInternalLinks = maxNumInternalLinks;
+    public void setMaxInternalLinks(Integer maxNumInternalLinks) {
+        if (maxNumInternalLinks != null) {
+            this.maxInternalLinks = maxNumInternalLinks;
+        }
     }
 
     public String getUrl() {
