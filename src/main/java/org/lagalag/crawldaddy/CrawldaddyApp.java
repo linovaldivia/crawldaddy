@@ -10,6 +10,7 @@ import java.util.concurrent.Future;
  *
  */
 public class CrawldaddyApp {
+    
     private void showResults(CrawldaddyResult result, CrawldaddyCommandLine commandLine) {
         if (result == null) {
             return;

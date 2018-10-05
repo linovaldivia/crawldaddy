@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.RecursiveAction;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -23,6 +25,7 @@ import org.jsoup.select.Elements;
  */
 public class CrawldaddyAction extends RecursiveAction {
     private static final long serialVersionUID = 1L;
+    private static final Logger LOGGER = LogManager.getLogger();
     
     private String url;
     private CrawldaddyResult result;
@@ -60,7 +63,7 @@ public class CrawldaddyAction extends RecursiveAction {
             }
         }
 
-        System.out.printf("%32s: VISITING: %s%n", Thread.currentThread().getName(), url);
+        LOGGER.debug("VISITING: " + url);
         Instant startTime = Instant.now();
         try {
             Document doc = Jsoup.connect(url).get();
@@ -76,18 +79,18 @@ public class CrawldaddyAction extends RecursiveAction {
                 invokeAll(linksToFollow);
             }
         } catch (IllegalArgumentException e) {
-            System.err.println("Detected malformed url: " + url);
+            LOGGER.error("Detected malformed url: " + url);
         } catch (HttpStatusException e) {
             if (e.getStatusCode() == 404) {
-                System.err.println("GET " + url + " --> 404 (Not Found)");
+                LOGGER.error("GET " + url + " --> 404 (Not Found)");
                 if (result != null) {
                     result.addBrokenLink(url);
                 }
             } else {
-                System.err.println("GET " + url + " resulted in a " + e.getStatusCode());
+                LOGGER.error("GET " + url + " resulted in a " + e.getStatusCode());
             }
         } catch (IOException e) {
-            System.err.println("Unable to GET " + url + ": " + e.getMessage());
+            LOGGER.error("Unable to GET " + url + ": " + e.getMessage());
         } finally {
             if (this.isInitiatingAction && (result != null)) {
                 result.setCrawlTime(Duration.between(startTime, Instant.now()));
@@ -120,7 +123,7 @@ public class CrawldaddyAction extends RecursiveAction {
                     linksToFollow.put(link, new CrawldaddyAction(link, result, maxNumInternalLinks));
                 }
             } else {
-                // System.out.println("External link: " + link);
+                LOGGER.trace("External link: " + link);
                 result.addExternalLink(link);
             }
         }
@@ -158,7 +161,7 @@ public class CrawldaddyAction extends RecursiveAction {
                 return hostname;
             }
         } catch (MalformedURLException e) {
-            System.err.println("Detected malformed url: " + url);
+            LOGGER.error("Detected malformed url: " + url);
             return "";
         }
     }
