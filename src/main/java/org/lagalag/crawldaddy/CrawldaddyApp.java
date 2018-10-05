@@ -21,8 +21,9 @@ public class CrawldaddyApp {
         
         System.out.println("RESULTS for " + result.getUrl() + ":");
         System.out.println("Total number of unique links : " + result.getTotalLinkCount());
+        System.out.println("   Number of internal links  : " + result.getInternalLinkCount());
         System.out.println("   Number of external links  : " + extLinks.size());
-        System.out.println("Number of broken links       : " + brokenLinks.size());
+        System.out.println("   Number of broken links    : " + brokenLinks.size());
         System.out.println("Number of ext scripts        : " + extScripts.size());
         if (commandLine.isShowExternalLinksSet()) {
             showSetContents("EXTERNAL LINKS", extLinks);
@@ -64,9 +65,9 @@ public class CrawldaddyApp {
             return null;
         }
         
-        CrawldaddyParams params = new CrawldaddyParams(commandLine.getInputUrl());
-        params.setMaxInternalLinks(commandLine.getMaxInternalLinks());
-        
+        CrawldaddyParams params = new CrawldaddyParams(commandLine.getInputUrl(),
+                                                       commandLine.getMaxInternalLinks(),
+                                                       commandLine.isGenerateVerboseOutputSet());
         return params;
     }
     

@@ -19,6 +19,7 @@ public class CrawldaddyCommandLine {
     public static final String CL_OPT_SHOW_EXT_LINKS = "xl";
     public static final String CL_OPT_SHOW_EXT_SCRIPTS = "xs";
     public static final String CL_OPT_MAX_INT_LINKS = "m";
+    public static final String CL_OPT_GENERATE_VERBOSE_OUTPUT = "v";
     public static final String CL_LONGOPT_SHOW_EXT_LINKS = "extLinks";
     public static final String CL_LONGOPT_SHOW_EXT_SCRIPTS = "extScripts";
     public static final String CL_LONGOPT_MAX_INT_LINKS = "maxIntLinks";
@@ -32,6 +33,8 @@ public class CrawldaddyCommandLine {
                                              .desc("Show external scripts encountered.").build());
         COMMAND_LINE_OPTIONS.addOption(Option.builder(CL_OPT_SHOW_EXT_LINKS).longOpt(CL_LONGOPT_SHOW_EXT_LINKS)
                                              .desc("Show external links encountered.").build());
+        COMMAND_LINE_OPTIONS.addOption(Option.builder(CL_OPT_GENERATE_VERBOSE_OUTPUT)
+                                             .desc("Generate verbose output while crawling.").build());
     }
     
     private CommandLine commandLine;
@@ -84,6 +87,10 @@ public class CrawldaddyCommandLine {
     
     public boolean isShowExternalScriptsSet() {
         return this.commandLine.hasOption(CL_OPT_SHOW_EXT_SCRIPTS);
+    }
+
+    public boolean isGenerateVerboseOutputSet() {
+        return this.commandLine.hasOption(CL_OPT_GENERATE_VERBOSE_OUTPUT);
     }
     
     private Integer getUnsignedIntValue(String stringValue) {

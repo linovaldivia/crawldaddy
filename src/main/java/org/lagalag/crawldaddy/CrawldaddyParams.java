@@ -9,29 +9,31 @@ public class CrawldaddyParams {
     
     private String url;
     private int maxInternalLinks = DEFAULT_MAX_INTERNAL_LINKS;
-
-    public CrawldaddyParams() {
-    }
-
-    public CrawldaddyParams(String url) {
+    private boolean showVisitedLink;
+    
+    public CrawldaddyParams(String url, Integer maxInternalLinks, boolean showVisitedLink) {
         this.url = url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public void setMaxInternalLinks(Integer maxNumInternalLinks) {
-        if (maxNumInternalLinks != null) {
-            this.maxInternalLinks = maxNumInternalLinks;
+        if (maxInternalLinks != null) {
+            this.maxInternalLinks = maxInternalLinks;
         }
+        this.showVisitedLink = showVisitedLink;
     }
-
+    
+    public CrawldaddyParams(String url, CrawldaddyParams paramsToCopy) {
+        this.url = url;
+        this.maxInternalLinks = paramsToCopy.maxInternalLinks;
+        this.showVisitedLink = paramsToCopy.showVisitedLink;
+    }
+    
     public String getUrl() {
         return url;
     }
 
     public int getMaxInternalLinks() {
         return maxInternalLinks;
+    }
+
+    public boolean getShowVisitedLink() {
+        return showVisitedLink;
     }
 }

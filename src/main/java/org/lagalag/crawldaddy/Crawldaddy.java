@@ -19,7 +19,7 @@ public class Crawldaddy {
         return ForkJoinPool.commonPool().submit(new Callable<CrawldaddyResult>() {
             @Override
             public CrawldaddyResult call() throws Exception {
-                CrawldaddyAction cdAction = new CrawldaddyAction(params.getUrl(), params.getMaxInternalLinks());
+                CrawldaddyAction cdAction = new CrawldaddyAction(params);
                 // Initiate the crawl and wait for the result.
                 ForkJoinPool.commonPool().invoke(cdAction);
                 return cdAction.getResult();

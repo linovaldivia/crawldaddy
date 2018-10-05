@@ -42,11 +42,13 @@ public class CrawldaddyCommandLineTests {
         String[] args = createCommandLineArgs(useShortOptions, 
                                               CrawldaddyCommandLine.CL_OPT_SHOW_EXT_LINKS,
                                               CrawldaddyCommandLine.CL_OPT_SHOW_EXT_SCRIPTS,
+                                              CrawldaddyCommandLine.CL_OPT_GENERATE_VERBOSE_OUTPUT,
                                               CrawldaddyCommandLine.CL_OPT_MAX_INT_LINKS + " " + maxIntLinks);
         try {
             CrawldaddyCommandLine cl = parseAndAssertNonNullCommandLine(args);
             assertTrue("Show external links option not set", cl.isShowExternalLinksSet());
             assertTrue("Show external scripts option not set", cl.isShowExternalScriptsSet());
+            assertTrue("Generate verbose output option not set", cl.isGenerateVerboseOutputSet());
             assertEquals("Max internal links not set", maxIntLinks, cl.getMaxInternalLinks());
         } catch (RuntimeException e) {
             fail("Exception on running application with illegal value for option " + CrawldaddyCommandLine.CL_OPT_MAX_INT_LINKS + ": " + e.getMessage());

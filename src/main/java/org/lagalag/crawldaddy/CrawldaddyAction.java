@@ -27,23 +27,20 @@ public class CrawldaddyAction extends RecursiveAction {
     private static final long serialVersionUID = 1L;
     private static final Logger LOGGER = LogManager.getLogger();
     
-    private String url;
+    private CrawldaddyParams params;
     private CrawldaddyResult result;
     private boolean isInitiatingAction;
-    private final int maxNumInternalLinks;
 
-    public CrawldaddyAction(String url, int maxNumInternalLinks) {
-        this.url = url;
+    public CrawldaddyAction(CrawldaddyParams params) {
+        this.params = params;
         this.isInitiatingAction = true;
-        this.maxNumInternalLinks = maxNumInternalLinks;
     }
     
     /* Used only when following links from a page that has been downloaded */
-    private CrawldaddyAction(String url, CrawldaddyResult result, int maxNumInternalLinks) {
-        this.url = url;
+    private CrawldaddyAction(CrawldaddyParams params, CrawldaddyResult result) {
+        this.params = params;
         this.result = result;
         this.isInitiatingAction = false;
-        this.maxNumInternalLinks = maxNumInternalLinks;
     }
     
     public CrawldaddyResult getResult() {
@@ -52,24 +49,29 @@ public class CrawldaddyAction extends RecursiveAction {
     
     @Override
     protected void compute() {
-        if (url == null) {
+        if ((params == null) || (params.getUrl() == null)) {
             return;
         }
         
+        String url = params.getUrl();
+        
         if (result != null) {
-            if (!result.checkAndAddInternalLink(url, maxNumInternalLinks)) {
+            if (!result.checkAndAddInternalLink(url, params.getMaxInternalLinks())) {
                 // This link has already been visited or we've hit the internal links limit -- bail out.
                 return;
             }
         }
 
+        if (params.getShowVisitedLink()) {
+            System.out.println("VISITING: " + url);
+        }
         LOGGER.debug("VISITING: " + url);
-        Instant startTime = Instant.now();
+        Instant startTime = (this.isInitiatingAction ? Instant.now() : null);
         try {
             Document doc = Jsoup.connect(url).get();
             
             if (result == null) {
-                result = new CrawldaddyResult(url);
+                result = new CrawldaddyResult(params.getUrl());
             }
             
             Collection<CrawldaddyAction> linksToFollow = extractLinks(doc.select("a[href]"), getDomain(url));
@@ -108,7 +110,7 @@ public class CrawldaddyAction extends RecursiveAction {
             }
             
             // If the link is a self-reference, ignore.
-            if (this.url.equalsIgnoreCase(link)) {
+            if (params.getUrl().equalsIgnoreCase(link)) {
                 continue;
             }
             
@@ -120,10 +122,10 @@ public class CrawldaddyAction extends RecursiveAction {
             if (isInDomain(link, inputDomain)) {
                 // It's an internal link, but have we already visited it?
                 if (!result.hasInternalLink(link)) {
-                    linksToFollow.put(link, new CrawldaddyAction(link, result, maxNumInternalLinks));
+                    CrawldaddyParams newParams = new CrawldaddyParams(link, params);
+                    linksToFollow.put(link, new CrawldaddyAction(newParams, result));
                 }
             } else {
-                LOGGER.trace("External link: " + link);
                 result.addExternalLink(link);
             }
         }
@@ -183,7 +185,7 @@ public class CrawldaddyAction extends RecursiveAction {
     
     private String getBaseUrl() {
         try {
-            URL u = new URL(this.url);
+            URL u = new URL(params.getUrl());
             return u.getProtocol() + "://" + u.getHost() + "/";
         } catch (MalformedURLException e) {
             // Ignored -- shouldn't happen!
