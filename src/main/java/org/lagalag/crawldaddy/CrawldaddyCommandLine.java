@@ -81,6 +81,10 @@ public class CrawldaddyCommandLine {
         return getUnsignedIntValue(commandLine.getOptionValue(CL_OPT_MAX_INT_LINKS));
     }
     
+    public boolean isMaxInternalLinksSet() {
+        return this.commandLine.hasOption(CL_OPT_MAX_INT_LINKS);
+    }
+    
     public boolean isShowExternalLinksSet() {
         return this.commandLine.hasOption(CL_OPT_SHOW_EXT_LINKS);
     }

@@ -61,12 +61,16 @@ public class CrawldaddyApp {
     }
     
     private CrawldaddyParams createParams(CrawldaddyCommandLine commandLine) {
-        if (commandLine == null) {
-            return null;
+        Integer maxInternalLinks = null;
+        if (commandLine.isMaxInternalLinksSet()) {
+            maxInternalLinks = commandLine.getMaxInternalLinks();
+            if (maxInternalLinks == null) {
+                System.err.println("Illegal value for max internal links");
+                return null;
+            }
         }
-        
         CrawldaddyParams params = new CrawldaddyParams(commandLine.getInputUrl(),
-                                                       commandLine.getMaxInternalLinks(),
+                                                       maxInternalLinks,
                                                        commandLine.isGenerateVerboseOutputSet());
         return params;
     }
@@ -79,6 +83,11 @@ public class CrawldaddyApp {
         }
         
         CrawldaddyParams params = createParams(commandLine);
+        if (params == null) {
+            CrawldaddyCommandLine.showHelp(System.out);
+            return;
+        }
+        
         System.out.println("Crawling " + params.getUrl() + "...");
         Future<CrawldaddyResult> fresult = new Crawldaddy(params).startCrawl();
         if (fresult != null) {
