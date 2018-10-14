@@ -33,10 +33,8 @@ Crawldaddy limits itself to the domain of the input url and will not follow exte
 
     $ mvn verify
     ...
-    $ mvn exec:java -Dexec.mainClass="org.lagalag.crawldaddy.Crawldaddy" -Dexec.args=<url-to-crawl>
+    $ java -jar target/crawldaddy-0.5-jar-with-dependencies.jar <url-to-crawl>
 
 Example:
 
-    $ mvn exec:java -Dexec.mainClass="org.lagalag.crawldaddy.Crawldaddy" -Dexec.args=https://www.mizcracker.com
-
-(yeah it's a bit awkward right now, I have a pending TODO to bundle everything together into an executable jar)
+    $ java -jar target/crawldaddy-0.5-jar-with-dependencies.jar https://www.mizcracker.com
