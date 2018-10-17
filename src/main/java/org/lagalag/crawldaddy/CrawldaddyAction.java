@@ -29,11 +29,13 @@ public class CrawldaddyAction extends RecursiveAction {
     
     private CrawldaddyParams params;
     private CrawldaddyResult result;
+    private String internalLinksScope;
     private boolean isInitiatingAction;
 
     public CrawldaddyAction(CrawldaddyParams params) {
         this.params = params;
         this.isInitiatingAction = true;
+        this.internalLinksScope = getHost(params.getUrl());
     }
     
     /* Used only when following links from a page that has been downloaded */
@@ -41,6 +43,7 @@ public class CrawldaddyAction extends RecursiveAction {
         this.params = params;
         this.result = result;
         this.isInitiatingAction = false;
+        this.internalLinksScope = getHost(params.getUrl());
     }
     
     public CrawldaddyResult getResult() {
@@ -74,7 +77,8 @@ public class CrawldaddyAction extends RecursiveAction {
                 result = new CrawldaddyResult(params.getUrl());
             }
             
-            Collection<CrawldaddyAction> linksToFollow = extractLinks(doc.select("a[href]"), getDomain(url));
+            Elements linkElements = doc.select("a[href]");
+            Collection<CrawldaddyAction> linksToFollow = extractLinks(linkElements);
             extractExternalScripts(doc.select("script[src]"));
             
             if (linksToFollow.size() > 0) {
@@ -100,7 +104,7 @@ public class CrawldaddyAction extends RecursiveAction {
         }
     }
     
-    private Collection<CrawldaddyAction> extractLinks(Elements elems, String inputDomain) {
+    private Collection<CrawldaddyAction> extractLinks(Elements elems) {
         Map<String,CrawldaddyAction> linksToFollow = new HashMap<>();
         for (Element e : elems) {
             String link = canonicalize(e.attr("abs:href"));
@@ -119,9 +123,8 @@ public class CrawldaddyAction extends RecursiveAction {
                 continue;
             }
             
-            if (isInDomain(link, inputDomain)) {
-                // It's an internal link, but have we already visited it?
-                if (!result.hasInternalLink(link)) {
+            if (isInternalLink(link)) {
+                if (!hasInternalLinkBeenVisited(link)) {
                     CrawldaddyParams newParams = new CrawldaddyParams(link, params);
                     linksToFollow.put(link, new CrawldaddyAction(newParams, result));
                 }
@@ -132,18 +135,26 @@ public class CrawldaddyAction extends RecursiveAction {
         return linksToFollow.values();
     }
     
+    private boolean isInternalLink(String link) {
+        return hasSameHost(link, internalLinksScope);
+    }
+    
+    private boolean hasInternalLinkBeenVisited(String link) {
+        return result.hasInternalLink(link);
+    }
+    
     private void extractExternalScripts(Elements scripts) {
         for (Element s : scripts) {
             result.addExternalScript(s.attr("abs:src"));
         }
     }
     
-    private boolean isInDomain(String link, String inputDomain) {
-        return getDomain(link).equals(inputDomain);
+    private boolean hasSameHost(String link, String host) {
+        return getHost(link).equals(host);
     }
     
-    private String getDomain(String url) {
-        if (url.trim().length() == 0) {
+    private String getHost(String url) {
+        if ((url == null) || (url.trim().length() == 0)) {
             return "";
         }
         if ("/".equals(url.trim())) {
@@ -152,16 +163,7 @@ public class CrawldaddyAction extends RecursiveAction {
         
         try {
             URL urlObj = new URL(url);
-            String hostname = urlObj.getHost();
-            String[] parts = hostname.split("\\.");
-            int numParts = parts.length;
-            if (numParts >= 2) {
-                // Use only the last two parts of the hostname.
-                return parts[numParts - 2] + "." + parts[numParts - 1];
-            } else {
-                // Use the whole hostname parsed from input url.
-                return hostname;
-            }
+            return urlObj.getHost();
         } catch (MalformedURLException e) {
             LOGGER.error("Detected malformed url: " + url);
             return "";
