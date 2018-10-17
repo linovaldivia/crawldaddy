@@ -5,8 +5,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.RecursiveAction;
 
@@ -26,6 +28,8 @@ import org.jsoup.select.Elements;
 public class CrawldaddyAction extends RecursiveAction {
     private static final long serialVersionUID = 1L;
     private static final Logger LOGGER = LogManager.getLogger();
+    
+    private static final List<String> UNSUPPORTED_TYPES = Arrays.asList("jpg", "pdf", "png", "gif");
     
     private CrawldaddyParams params;
     private CrawldaddyResult result;
@@ -69,6 +73,10 @@ public class CrawldaddyAction extends RecursiveAction {
             System.out.println("VISITING: " + url);
         }
         LOGGER.debug("VISITING: " + url);
+        crawlLink(url);
+    }
+    
+    private void crawlLink(String url) {
         Instant startTime = (this.isInitiatingAction ? Instant.now() : null);
         try {
             Document doc = Jsoup.connect(url).get();
@@ -87,14 +95,7 @@ public class CrawldaddyAction extends RecursiveAction {
         } catch (IllegalArgumentException e) {
             LOGGER.error("Detected malformed url: " + url);
         } catch (HttpStatusException e) {
-            if (e.getStatusCode() == 404) {
-                LOGGER.error("GET " + url + " --> 404 (Not Found)");
-                if (result != null) {
-                    result.addBrokenLink(url);
-                }
-            } else {
-                LOGGER.error("GET " + url + " resulted in a " + e.getStatusCode());
-            }
+            handleHttpStatusException(url, e);
         } catch (IOException e) {
             LOGGER.error("Unable to GET " + url + ": " + e.getMessage());
         } finally {
@@ -123,16 +124,39 @@ public class CrawldaddyAction extends RecursiveAction {
                 continue;
             }
             
-            if (isInternalLink(link)) {
-                if (!hasInternalLinkBeenVisited(link)) {
-                    CrawldaddyParams newParams = new CrawldaddyParams(link, params);
-                    linksToFollow.put(link, new CrawldaddyAction(newParams, result));
+            if (isSupportedType(link)) {
+                if (isInternalLink(link)) {
+                    if (!hasInternalLinkBeenVisited(link)) {
+                        CrawldaddyParams newParams = new CrawldaddyParams(link, params);
+                        linksToFollow.put(link, new CrawldaddyAction(newParams, result));
+                    }
+                } else {
+                    result.addExternalLink(link);
                 }
-            } else {
-                result.addExternalLink(link);
             }
         }
         return linksToFollow.values();
+    }
+    
+    private boolean isSupportedType(String link) {
+        try {
+            URL url = new URL(link);
+            String path = url.getPath();
+            if (path.trim().length() == 0) {
+                // URL has no path -- assume it's an HTML doc.
+                return true;
+            }
+            int extIdx = path.lastIndexOf('.');
+            if (extIdx == -1) {
+                // No extension -- assume it's an HTML doc.
+                return true;
+            }
+            String ext = path.substring(extIdx + 1).trim().toLowerCase();
+            return (!UNSUPPORTED_TYPES.contains(ext));
+        } catch (MalformedURLException e) {
+            LOGGER.error("Detected malformed url: " + link);
+            return false;
+        }
     }
     
     private boolean isInternalLink(String link) {
@@ -141,6 +165,17 @@ public class CrawldaddyAction extends RecursiveAction {
     
     private boolean hasInternalLinkBeenVisited(String link) {
         return result.hasInternalLink(link);
+    }
+    
+    private void handleHttpStatusException(String url, HttpStatusException e) {
+        if (e.getStatusCode() == 404) {
+            LOGGER.error("GET " + url + " --> 404 (Not Found)");
+            if (result != null) {
+                result.addBrokenLink(url);
+            }
+        } else {
+            LOGGER.error("GET " + url + " resulted in a " + e.getStatusCode());
+        }
     }
     
     private void extractExternalScripts(Elements scripts) {
