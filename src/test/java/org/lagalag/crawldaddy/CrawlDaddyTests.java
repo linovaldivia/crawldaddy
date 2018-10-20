@@ -2,6 +2,7 @@ package org.lagalag.crawldaddy;
 
 import static org.junit.Assert.*;
 
+import java.net.HttpURLConnection;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.Future;
@@ -15,19 +16,21 @@ public class CrawldaddyTests {
     @Test
     public void testNullUrl() {
         CrawldaddyResult cdr = doCrawl(null);
-        assertNull("Crawling url=null returns non-null result", cdr);
+        assertNotNull("Crawling url=null returns null result", cdr);
     }
     
     @Test
     public void testBadUrls() {
         CrawldaddyResult cdr = doCrawl("fakeurl");
-        assertNull("Crawling url=fakeurl returns non-null result", cdr);
+        assertNotNull("Crawling bad url returns null result", cdr);
+        assertTrue("Bad url did not result in page fetch exception", cdr.hasPageFetchException());
     }
 
     @Test
     public void test404() {
         CrawldaddyResult cdr = doCrawl("http://example.org/this-is-a-404");
-        assertNull("Crawling non-existent resource returns non-null result", cdr);
+        assertNotNull("Crawling non-existent resource returns null result", cdr);
+        assertEquals("Non-404 status code returned", HttpURLConnection.HTTP_NOT_FOUND, cdr.getHttpStatusCode());
     }
     
     @Test

@@ -5,6 +5,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import org.lagalag.crawldaddy.pages.PageFetchException;
+
 /**
  * Main command-line application class: handles command-line parsing, displaying output, etc.
  *
@@ -12,27 +14,31 @@ import java.util.concurrent.Future;
 public class CrawldaddyApp {
     
     private void showResults(CrawldaddyResult result, CrawldaddyCommandLine commandLine) {
-        if (result == null) {
-            return;
+        if (result.hasPageFetchException()) {
+            PageFetchException e = result.getPageFetchException();
+            System.err.println(e.getMessage());
+        } else if (!result.isHttpStatusOK()) {
+            System.err.println("Crawl attempt resulted in HTTP " + result.getHttpStatusCode());
+        } else {
+            Set<String> extLinks = result.getExternalLinks();
+            Set<String> brokenLinks = result.getBrokenLinks();
+            Set<String> extScripts = result.getExternalScripts();
+            
+            System.out.println("RESULTS for " + result.getUrl() + ":");
+            System.out.println("Total number of unique links : " + result.getTotalLinkCount());
+            System.out.println("   Number of internal links  : " + result.getInternalLinkCount());
+            System.out.println("   Number of external links  : " + extLinks.size());
+            System.out.println("   Number of broken links    : " + brokenLinks.size());
+            System.out.println("Number of ext scripts        : " + extScripts.size());
+            if (commandLine.isShowExternalLinksSet()) {
+                showSetContents("EXTERNAL LINKS", extLinks);
+            }
+            showSetContents("BROKEN LINKS", brokenLinks);
+            if (commandLine.isShowExternalScriptsSet()) {
+                showSetContents("EXTERNAL SCRIPTS", extScripts);
+            }
+            showCrawlTime(result.getCrawlTime());
         }
-        Set<String> extLinks = result.getExternalLinks();
-        Set<String> brokenLinks = result.getBrokenLinks();
-        Set<String> extScripts = result.getExternalScripts();
-        
-        System.out.println("RESULTS for " + result.getUrl() + ":");
-        System.out.println("Total number of unique links : " + result.getTotalLinkCount());
-        System.out.println("   Number of internal links  : " + result.getInternalLinkCount());
-        System.out.println("   Number of external links  : " + extLinks.size());
-        System.out.println("   Number of broken links    : " + brokenLinks.size());
-        System.out.println("Number of ext scripts        : " + extScripts.size());
-        if (commandLine.isShowExternalLinksSet()) {
-            showSetContents("EXTERNAL LINKS", extLinks);
-        }
-        showSetContents("BROKEN LINKS", brokenLinks);
-        if (commandLine.isShowExternalScriptsSet()) {
-            showSetContents("EXTERNAL SCRIPTS", extScripts);
-        }
-        showCrawlTime(result.getCrawlTime());
     }
     
     private void showSetContents(String title, Set<String> set) {

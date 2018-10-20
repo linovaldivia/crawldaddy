@@ -39,6 +39,7 @@ public class CrawldaddyAction extends RecursiveAction implements PageFetchConsum
         this.params = params;
         this.isInitiatingAction = true;
         this.internalLinksScope = URLUtils.getHost(params.getUrl());
+        this.crawldaddyResult = new CrawldaddyResult(params.getUrl());
     }
     
     /* Used only when following links from a page that has been downloaded */
@@ -60,12 +61,9 @@ public class CrawldaddyAction extends RecursiveAction implements PageFetchConsum
         }
         
         String url = params.getUrl();
-        
-        if (crawldaddyResult != null) {
-            if (!crawldaddyResult.checkAndAddInternalLink(url, params.getMaxInternalLinks())) {
-                // This link has already been visited or we've hit the internal links limit -- bail out.
-                return;
-            }
+        if (!crawldaddyResult.checkAndAddInternalLink(url, params.getMaxInternalLinks())) {
+            // This link has already been visited or we've hit the internal links limit -- bail out.
+            return;
         }
 
         if (params.getShowVisitedLink()) {
@@ -76,14 +74,17 @@ public class CrawldaddyAction extends RecursiveAction implements PageFetchConsum
     }
     
     private void crawlLink(String url) {
-        Instant startTime = (this.isInitiatingAction ? Instant.now() : null);
+        Instant startTime = (isInitiatingAction ? Instant.now() : null);
         try {
             PageFetchService pageFetchService = PageFetchServiceLocator.getService();
             pageFetchService.fetch(url, this);
         } catch (PageFetchException e) {
             LOGGER.error(e.getMessage());
+            if (isInitiatingAction) {
+                crawldaddyResult.setPageFetchException(e);
+            }
         } finally {
-            if (this.isInitiatingAction && (crawldaddyResult != null)) {
+            if (isInitiatingAction) {
                 crawldaddyResult.setCrawlTime(Duration.between(startTime, Instant.now()));
             }
         }
@@ -91,11 +92,10 @@ public class CrawldaddyAction extends RecursiveAction implements PageFetchConsum
     
     @Override
     public void handlePageFetchResults(PageFetchResults pageFetchResults) {
+        if (isInitiatingAction) {
+            crawldaddyResult.setHttpStatusCode(pageFetchResults.getHttpStatusCode());
+        }
         if (pageFetchResults.isHttpStatusOK()) {
-            // TODO consider returning a Special Case object instead of null result
-            if (crawldaddyResult == null) {
-                crawldaddyResult = new CrawldaddyResult(params.getUrl());
-            }
             Collection<CrawldaddyAction> urlsToFollow = processLinkUrls(pageFetchResults.getLinkUrls());
             processScriptUrls(pageFetchResults.getScriptUrls());
             if (urlsToFollow.size() > 0) {
@@ -161,9 +161,7 @@ public class CrawldaddyAction extends RecursiveAction implements PageFetchConsum
     private void handleNonOKHttpStatus(String url, int httpStatusCode) {
         if (httpStatusCode == HttpURLConnection.HTTP_NOT_FOUND) {
             LOGGER.error("GET " + url + " --> 404 (Not Found)");
-            if (crawldaddyResult != null) {
-                crawldaddyResult.addBrokenLink(url);
-            }
+            crawldaddyResult.addBrokenLink(url);
         } else {
             LOGGER.error("GET " + url + " resulted in a " + httpStatusCode);
         }

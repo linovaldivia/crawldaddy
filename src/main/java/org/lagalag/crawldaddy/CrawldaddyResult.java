@@ -1,5 +1,6 @@
 package org.lagalag.crawldaddy;
 
+import java.net.HttpURLConnection;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -7,11 +8,15 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.lagalag.crawldaddy.pages.PageFetchException;
+
 /**
  * Holds the results of the web crawl.
  */
 public class CrawldaddyResult {
     private String url;
+    private int httpStatusCode;
+    private PageFetchException pageFetchException;
     private ConcurrentMap<String,Boolean> intLinks = new ConcurrentHashMap<>();
     private Set<String> extLinks = ConcurrentHashMap.newKeySet();
     private Set<String> brokenLinks = ConcurrentHashMap.newKeySet();
@@ -34,6 +39,30 @@ public class CrawldaddyResult {
         return url;
     }
     
+    public void setHttpStatusCode(int httpStatusCode) {
+        this.httpStatusCode = httpStatusCode;
+    }
+    
+    public boolean isHttpStatusOK() {
+        return (httpStatusCode == HttpURLConnection.HTTP_OK);
+    }
+    
+    public int getHttpStatusCode() {
+        return httpStatusCode;
+    }
+
+    public void setPageFetchException(PageFetchException pageFetchException) {
+        this.pageFetchException = pageFetchException;
+    }
+    
+    public boolean hasPageFetchException() {
+        return (pageFetchException != null);
+    }
+    
+    public PageFetchException getPageFetchException() {
+        return pageFetchException;
+    }
+
     public int getTotalLinkCount() {
         return getInternalLinkCount() + getExternalLinkCount() + getBrokenLinkCount();
     }
