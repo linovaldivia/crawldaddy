@@ -1,7 +1,7 @@
 package org.lagalag.crawldaddy;
 
 /**
- * Class that encapsulates parameters used by the crawler engine.
+ * Class that encapsulates parameters used to control the crawler internals.
  *
  */
 public class CrawldaddyParams {

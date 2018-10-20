@@ -1,6 +1,6 @@
 package org.lagalag.crawldaddy;
 
-import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
@@ -14,25 +14,25 @@ import java.util.concurrent.RecursiveAction;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jsoup.HttpStatusException;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
+import org.lagalag.crawldaddy.pages.PageFetchConsumer;
+import org.lagalag.crawldaddy.pages.PageFetchException;
+import org.lagalag.crawldaddy.pages.PageFetchResults;
+import org.lagalag.crawldaddy.pages.PageFetchService;
+import org.lagalag.crawldaddy.pages.PageFetchServiceLocator;
 
 /**
  * Retrieves and processes the document at a specified URL, extracting links and external javascript references.
  * Internal links (e.g. links that are in the same domain as the initial URL) will also be retrieved and processed, 
  * possibly in another thread.
  */
-public class CrawldaddyAction extends RecursiveAction {
+public class CrawldaddyAction extends RecursiveAction implements PageFetchConsumer {
     private static final long serialVersionUID = 1L;
     private static final Logger LOGGER = LogManager.getLogger();
     
     private static final List<String> UNSUPPORTED_TYPES = Arrays.asList("jpg", "pdf", "png", "gif");
     
     private CrawldaddyParams params;
-    private CrawldaddyResult result;
+    private CrawldaddyResult crawldaddyResult;
     private String internalLinksScope;
     private boolean isInitiatingAction;
 
@@ -45,13 +45,13 @@ public class CrawldaddyAction extends RecursiveAction {
     /* Used only when following links from a page that has been downloaded */
     private CrawldaddyAction(CrawldaddyParams params, CrawldaddyResult result) {
         this.params = params;
-        this.result = result;
+        this.crawldaddyResult = result;
         this.isInitiatingAction = false;
         this.internalLinksScope = getHost(params.getUrl());
     }
     
     public CrawldaddyResult getResult() {
-        return this.result;
+        return this.crawldaddyResult;
     }
     
     @Override
@@ -62,8 +62,8 @@ public class CrawldaddyAction extends RecursiveAction {
         
         String url = params.getUrl();
         
-        if (result != null) {
-            if (!result.checkAndAddInternalLink(url, params.getMaxInternalLinks())) {
+        if (crawldaddyResult != null) {
+            if (!crawldaddyResult.checkAndAddInternalLink(url, params.getMaxInternalLinks())) {
                 // This link has already been visited or we've hit the internal links limit -- bail out.
                 return;
             }
@@ -79,63 +79,74 @@ public class CrawldaddyAction extends RecursiveAction {
     private void crawlLink(String url) {
         Instant startTime = (this.isInitiatingAction ? Instant.now() : null);
         try {
-            Document doc = Jsoup.connect(url).get();
-            
-            if (result == null) {
-                result = new CrawldaddyResult(params.getUrl());
-            }
-            
-            Elements linkElements = doc.select("a[href]");
-            Collection<CrawldaddyAction> urlsToFollow = extractLinks(linkElements);
-            extractExternalScripts(doc.select("script[src]"));
-            
-            if (urlsToFollow.size() > 0) {
-                invokeAll(urlsToFollow);
-            }
-        } catch (IllegalArgumentException e) {
-            LOGGER.error("Detected malformed url: " + url);
-        } catch (HttpStatusException e) {
-            handleHttpStatusException(url, e);
-        } catch (IOException e) {
-            LOGGER.error("Unable to GET " + url + ": " + e.getMessage());
+            PageFetchService pageFetchService = PageFetchServiceLocator.getService();
+            pageFetchService.fetch(url, this);
+        } catch (PageFetchException e) {
+            LOGGER.error(e.getMessage());
         } finally {
-            if (this.isInitiatingAction && (result != null)) {
-                result.setCrawlTime(Duration.between(startTime, Instant.now()));
+            if (this.isInitiatingAction && (crawldaddyResult != null)) {
+                crawldaddyResult.setCrawlTime(Duration.between(startTime, Instant.now()));
             }
         }
     }
     
-    private Collection<CrawldaddyAction> extractLinks(Elements elems) {
+    @Override
+    public void handlePageFetchResults(PageFetchResults pageFetchResults) {
+        if (pageFetchResults.isHttpStatusOK()) {
+            // TODO consider returning a Special Case object instead of null result
+            if (crawldaddyResult == null) {
+                crawldaddyResult = new CrawldaddyResult(params.getUrl());
+            }
+            Collection<CrawldaddyAction> urlsToFollow = processLinkUrls(pageFetchResults.getLinkUrls());
+            processScriptUrls(pageFetchResults.getScriptUrls());
+            if (urlsToFollow.size() > 0) {
+                invokeAll(urlsToFollow);
+            }
+        } else {
+            handleNonOKHttpStatus(pageFetchResults.getUrl(), pageFetchResults.getHttpStatusCode());
+        }
+    }
+    
+    private Collection<CrawldaddyAction> processLinkUrls(List<String> linkUrls) {
         Map<String,CrawldaddyAction> urlsToFollow = new HashMap<>();
-        for (Element e : elems) {
-            String url = canonicalize(e.attr("abs:href"));
+        for (String linkUrl : linkUrls) {
+            linkUrl = canonicalize(linkUrl);
             // Some sites have empty hrefs apparently.
-            if (url.trim().length() == 0) {
+            if (linkUrl.trim().length() == 0) {
                 continue;
             }
             
             // If the link is a self-reference, ignore.
-            if (params.getUrl().equalsIgnoreCase(url)) {
+            if (params.getUrl().equalsIgnoreCase(linkUrl)) {
                 continue;
             }
             
             // If this link was already seen (within the same document), ignore.
-            if (urlsToFollow.containsKey(url)) {
+            if (urlsToFollow.containsKey(linkUrl)) {
                 continue;
             }
-            
-            if (isSupportedType(url)) {
-                if (isInternalLink(url)) {
-                    if (!hasInternalLinkBeenVisited(url)) {
-                        CrawldaddyParams newParams = new CrawldaddyParams(url, params);
-                        urlsToFollow.put(url, new CrawldaddyAction(newParams, result));
-                    }
-                } else {
-                    result.addExternalLink(url);
-                }
+
+            CrawldaddyAction actionForUrlToFollow = triageLinkUrl(linkUrl);
+            if (actionForUrlToFollow != null) {
+                urlsToFollow.put(linkUrl, actionForUrlToFollow);
             }
         }
         return urlsToFollow.values();
+    }
+    
+    private CrawldaddyAction triageLinkUrl(String linkUrl) {
+        CrawldaddyAction actionForUrlToFollow = null;
+        if (isSupportedType(linkUrl)) {
+            if (isInternalLink(linkUrl)) {
+                if (!hasInternalLinkBeenVisited(linkUrl)) {
+                    CrawldaddyParams newParams = new CrawldaddyParams(linkUrl, params);
+                    actionForUrlToFollow = new CrawldaddyAction(newParams, crawldaddyResult);
+                }
+            } else {
+                crawldaddyResult.addExternalLink(linkUrl);
+            }
+        }
+        return actionForUrlToFollow;
     }
     
     private boolean isSupportedType(String url) {
@@ -181,24 +192,22 @@ public class CrawldaddyAction extends RecursiveAction {
     }
     
     private boolean hasInternalLinkBeenVisited(String url) {
-        return result.hasInternalLink(url);
+        return crawldaddyResult.hasInternalLink(url);
     }
     
-    private void handleHttpStatusException(String url, HttpStatusException e) {
-        if (e.getStatusCode() == 404) {
+    private void handleNonOKHttpStatus(String url, int httpStatusCode) {
+        if (httpStatusCode == HttpURLConnection.HTTP_NOT_FOUND) {
             LOGGER.error("GET " + url + " --> 404 (Not Found)");
-            if (result != null) {
-                result.addBrokenLink(url);
+            if (crawldaddyResult != null) {
+                crawldaddyResult.addBrokenLink(url);
             }
         } else {
-            LOGGER.error("GET " + url + " resulted in a " + e.getStatusCode());
+            LOGGER.error("GET " + url + " resulted in a " + httpStatusCode);
         }
     }
     
-    private void extractExternalScripts(Elements scripts) {
-        for (Element s : scripts) {
-            result.addExternalScript(s.attr("abs:src"));
-        }
+    private void processScriptUrls(List<String> scriptUrls) {
+        crawldaddyResult.addExternalScripts(scriptUrls);
     }
     
     private boolean hasSameHost(String url, String host) {

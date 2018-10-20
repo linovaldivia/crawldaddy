@@ -2,6 +2,7 @@ package org.lagalag.crawldaddy;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -87,8 +88,12 @@ public class CrawldaddyResult {
         return Collections.unmodifiableSet(externalScripts);
     }
     
-    public void addExternalScript(String script) {
-        externalScripts.add(script);
+    public void addExternalScript(String scriptUrl) {
+        externalScripts.add(scriptUrl);
+    }
+    
+    public void addExternalScripts(List<String> scriptUrls) {
+        externalScripts.addAll(scriptUrls);
     }
     
     public int getExternalScriptsCount() {
