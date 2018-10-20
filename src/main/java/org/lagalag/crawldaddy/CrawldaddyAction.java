@@ -86,11 +86,11 @@ public class CrawldaddyAction extends RecursiveAction {
             }
             
             Elements linkElements = doc.select("a[href]");
-            Collection<CrawldaddyAction> linksToFollow = extractLinks(linkElements);
+            Collection<CrawldaddyAction> urlsToFollow = extractLinks(linkElements);
             extractExternalScripts(doc.select("script[src]"));
             
-            if (linksToFollow.size() > 0) {
-                invokeAll(linksToFollow);
+            if (urlsToFollow.size() > 0) {
+                invokeAll(urlsToFollow);
             }
         } catch (IllegalArgumentException e) {
             LOGGER.error("Detected malformed url: " + url);
@@ -106,65 +106,82 @@ public class CrawldaddyAction extends RecursiveAction {
     }
     
     private Collection<CrawldaddyAction> extractLinks(Elements elems) {
-        Map<String,CrawldaddyAction> linksToFollow = new HashMap<>();
+        Map<String,CrawldaddyAction> urlsToFollow = new HashMap<>();
         for (Element e : elems) {
-            String link = canonicalize(e.attr("abs:href"));
+            String url = canonicalize(e.attr("abs:href"));
             // Some sites have empty hrefs apparently.
-            if (link.trim().length() == 0) {
+            if (url.trim().length() == 0) {
                 continue;
             }
             
             // If the link is a self-reference, ignore.
-            if (params.getUrl().equalsIgnoreCase(link)) {
+            if (params.getUrl().equalsIgnoreCase(url)) {
                 continue;
             }
             
-            // If this link has already been processed (within the same document), ignore.
-            if (linksToFollow.containsKey(link)) {
+            // If this link was already seen (within the same document), ignore.
+            if (urlsToFollow.containsKey(url)) {
                 continue;
             }
             
-            if (isSupportedType(link)) {
-                if (isInternalLink(link)) {
-                    if (!hasInternalLinkBeenVisited(link)) {
-                        CrawldaddyParams newParams = new CrawldaddyParams(link, params);
-                        linksToFollow.put(link, new CrawldaddyAction(newParams, result));
+            if (isSupportedType(url)) {
+                if (isInternalLink(url)) {
+                    if (!hasInternalLinkBeenVisited(url)) {
+                        CrawldaddyParams newParams = new CrawldaddyParams(url, params);
+                        urlsToFollow.put(url, new CrawldaddyAction(newParams, result));
                     }
                 } else {
-                    result.addExternalLink(link);
+                    result.addExternalLink(url);
                 }
             }
         }
-        return linksToFollow.values();
+        return urlsToFollow.values();
     }
     
-    private boolean isSupportedType(String link) {
-        try {
-            URL url = new URL(link);
-            String path = url.getPath();
-            if (path.trim().length() == 0) {
-                // URL has no path -- assume it's an HTML doc.
-                return true;
-            }
-            int extIdx = path.lastIndexOf('.');
-            if (extIdx == -1) {
-                // No extension -- assume it's an HTML doc.
-                return true;
-            }
-            String ext = path.substring(extIdx + 1).trim().toLowerCase();
-            return (!UNSUPPORTED_TYPES.contains(ext));
-        } catch (MalformedURLException e) {
-            LOGGER.error("Detected malformed url: " + link);
+    private boolean isSupportedType(String url) {
+        String path = getPath(url);
+        if (path == null) {
+            // Possibly malformed URL -- definitely not supported.
             return false;
+        }
+        if (path.isEmpty()) {
+            // URL has no path -- assume it's an HTML doc.
+            return true;
+        }
+        String ext = getExtension(path);
+        if (ext == null) {
+            // No extension -- assume it's an HTML doc.
+            return true;
+        }
+        return (!UNSUPPORTED_TYPES.contains(ext));
+    }
+    
+    private String getPath(String url) {
+        try {
+            URL urlObj = new URL(url);
+            String path = urlObj.getPath();
+            return path.trim();
+        } catch (MalformedURLException e) {
+            LOGGER.error("Detected malformed url: " + url);
+            return null;
         }
     }
     
-    private boolean isInternalLink(String link) {
-        return hasSameHost(link, internalLinksScope);
+    private String getExtension(String urlPath) {
+        int extIdx = urlPath.lastIndexOf('.');
+        if (extIdx == -1) {
+            return null;
+        }
+        String ext = urlPath.substring(extIdx + 1).trim().toLowerCase();
+        return ext;
     }
     
-    private boolean hasInternalLinkBeenVisited(String link) {
-        return result.hasInternalLink(link);
+    private boolean isInternalLink(String url) {
+        return hasSameHost(url, internalLinksScope);
+    }
+    
+    private boolean hasInternalLinkBeenVisited(String url) {
+        return result.hasInternalLink(url);
     }
     
     private void handleHttpStatusException(String url, HttpStatusException e) {
@@ -184,8 +201,8 @@ public class CrawldaddyAction extends RecursiveAction {
         }
     }
     
-    private boolean hasSameHost(String link, String host) {
-        return getHost(link).equals(host);
+    private boolean hasSameHost(String url, String host) {
+        return getHost(url).equals(host);
     }
     
     private String getHost(String url) {
@@ -210,14 +227,16 @@ public class CrawldaddyAction extends RecursiveAction {
             return getBaseUrl();
         }
         
-        String retUrl = inUrl;
-        // Strip anchor.
-        int anchorIdx = retUrl.indexOf('#');
-        if (anchorIdx != -1) {
-            retUrl = retUrl.substring(0, anchorIdx);
-        }
-        
+        String retUrl = stripAnchor(inUrl);
         return retUrl;
+    }
+    
+    private String stripAnchor(String url) {
+        int anchorIdx = url.indexOf('#');
+        if (anchorIdx != -1) {
+            url = url.substring(0, anchorIdx);
+        }
+        return url;
     }
     
     private String getBaseUrl() {

@@ -41,18 +41,18 @@ public class CrawldaddyResult {
         return Collections.unmodifiableSet(intLinks.keySet());
     }
     
-    public boolean checkAndAddInternalLink(String link, int maxInternalLinks) {
+    public boolean checkAndAddInternalLink(String url, int maxInternalLinks) {
         synchronized(intLinks) {
             if (intLinks.size() < maxInternalLinks) {
                 // Return true only if the given link is not already in the map 
-                return (intLinks.putIfAbsent(link, Boolean.TRUE) == null);
+                return (intLinks.putIfAbsent(url, Boolean.TRUE) == null);
             }
         }
         return false;
     }
     
-    public boolean hasInternalLink(String link) {
-        return intLinks.containsKey(link);
+    public boolean hasInternalLink(String url) {
+        return intLinks.containsKey(url);
     }
     
     public int getInternalLinkCount() {
@@ -63,8 +63,8 @@ public class CrawldaddyResult {
         return Collections.unmodifiableSet(extLinks);
     }
     
-    public void addExternalLink(String link) {
-        extLinks.add(link);
+    public void addExternalLink(String url) {
+        extLinks.add(url);
     }
     
     public int getExternalLinkCount() {
