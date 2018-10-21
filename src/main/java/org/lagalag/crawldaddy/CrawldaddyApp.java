@@ -2,8 +2,6 @@ package org.lagalag.crawldaddy;
 
 import java.time.Duration;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import org.lagalag.crawldaddy.pages.PageFetchException;
 
@@ -12,8 +10,48 @@ import org.lagalag.crawldaddy.pages.PageFetchException;
  *
  */
 public class CrawldaddyApp {
+    public void runApp(String[] args) {
+        CrawldaddyCommandLine commandLine = CrawldaddyCommandLine.parse(args);
+        if (commandLine == null) {
+            CrawldaddyCommandLine.showHelp(System.out);
+            return;
+        }
+        
+        CrawldaddyParams params = createParams(commandLine);
+        if (params == null) {
+            CrawldaddyCommandLine.showHelp(System.out);
+            return;
+        }
+        
+        startCrawl(params, commandLine);
+    }
     
-    private void showResults(CrawldaddyResult result, CrawldaddyCommandLine commandLine) {
+    private void startCrawl(CrawldaddyParams params, CrawldaddyCommandLine commandLine) {
+        System.out.println("Crawling " + params.getUrl() + "...");
+        Crawldaddy crawler = new Crawldaddy(params);
+        try {
+            CrawldaddyResultSet results = crawler.crawl().get();
+            processResults(results, commandLine);
+        } catch (Exception e) {
+            System.err.println("A problem was encountered during the crawling operation: " + e.getMessage());
+        }
+    }
+    
+    private CrawldaddyParams createParams(CrawldaddyCommandLine commandLine) {
+        CrawldaddyParams params = new CrawldaddyParams(commandLine.getInputUrl());
+        params.setMaxInternalLinks(commandLine.getMaxInternalLinks(CrawldaddyParams.DEFAULT_MAX_INTERNAL_LINKS));
+        params.setShowVisitedLink(commandLine.isGenerateVerboseOutputSet());
+        params.setNumRepetitions(commandLine.getNumRepetitions(CrawldaddyParams.DEFAULT_CRAWL_REPETITIONS));
+        return params;
+    }
+    
+    private void processResults(CrawldaddyResultSet results, CrawldaddyCommandLine commandLine) {
+        for (CrawldaddyResult result : results) {
+            processResult(result, commandLine);
+        }
+    }
+    
+    private void processResult(CrawldaddyResult result, CrawldaddyCommandLine commandLine) {
         if (result.hasPageFetchException()) {
             PageFetchException e = result.getPageFetchException();
             System.err.println(e.getMessage());
@@ -64,41 +102,6 @@ public class CrawldaddyApp {
             ct.append(secs).append(".").append(millis).append(" second(s) ");
         }
         System.out.println(ct.toString());
-    }
-    
-    private CrawldaddyParams createParams(CrawldaddyCommandLine commandLine) {
-        CrawldaddyParams params = new CrawldaddyParams(commandLine.getInputUrl());
-        params.setMaxInternalLinks(commandLine.getMaxInternalLinks(CrawldaddyParams.DEFAULT_MAX_INTERNAL_LINKS));
-        params.setShowVisitedLink(commandLine.isGenerateVerboseOutputSet());
-        params.setNumRepetitions(commandLine.getNumRepetitions(CrawldaddyParams.DEFAULT_CRAWL_REPETITIONS));
-        return params;
-    }
-    
-    public void runApp(String[] args) {
-        CrawldaddyCommandLine commandLine = CrawldaddyCommandLine.parse(args);
-        if (commandLine == null) {
-            CrawldaddyCommandLine.showHelp(System.out);
-            return;
-        }
-        
-        CrawldaddyParams params = createParams(commandLine);
-        if (params == null) {
-            CrawldaddyCommandLine.showHelp(System.out);
-            return;
-        }
-        
-        System.out.println("Crawling " + params.getUrl() + "...");
-        Future<CrawldaddyResult> fresult = new Crawldaddy(params).startCrawl();
-        if (fresult != null) {
-            try {
-                CrawldaddyResult result = fresult.get();
-                showResults(result, commandLine);
-            } catch (InterruptedException e) {
-                System.err.println("Thread interrupted exception: " + e.getMessage());
-            } catch (ExecutionException e) {
-                System.err.println("Unable to proceed: " + e.getMessage());
-            }
-        }
     }
     
     public static void main(String[] args) {
