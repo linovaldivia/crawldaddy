@@ -80,7 +80,10 @@ public class CrawldaddyTests {
     
     private CrawldaddyResult doCrawl(String url, Integer maxInternalLinks) {
         System.out.println("Crawling: " + url);
-        CrawldaddyParams params = new CrawldaddyParams(url, maxInternalLinks, false);
+        CrawldaddyParams params = new CrawldaddyParams(url);
+        if (maxInternalLinks != null) {
+            params.setMaxInternalLinks(maxInternalLinks);
+        }
         Crawldaddy cd = new Crawldaddy(params);
         Future<CrawldaddyResult> cdf = cd.startCrawl();
         assertNotNull("Returned Future is null", cdf);

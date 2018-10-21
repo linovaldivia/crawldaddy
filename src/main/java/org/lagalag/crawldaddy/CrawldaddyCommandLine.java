@@ -19,10 +19,12 @@ public class CrawldaddyCommandLine {
     public static final String CL_OPT_SHOW_EXT_LINKS = "xl";
     public static final String CL_OPT_SHOW_EXT_SCRIPTS = "xs";
     public static final String CL_OPT_MAX_INT_LINKS = "m";
+    public static final String CL_OPT_CRAWL_REPEATEDLY = "r";
     public static final String CL_OPT_GENERATE_VERBOSE_OUTPUT = "v";
     public static final String CL_LONGOPT_SHOW_EXT_LINKS = "extLinks";
     public static final String CL_LONGOPT_SHOW_EXT_SCRIPTS = "extScripts";
     public static final String CL_LONGOPT_MAX_INT_LINKS = "maxIntLinks";
+    public static final String CL_LONGOPT_CRAWL_REPEATEDLY = "repeat";
 
     private static final Options COMMAND_LINE_OPTIONS;
     static {
@@ -35,6 +37,8 @@ public class CrawldaddyCommandLine {
                                              .desc("Show external links encountered.").build());
         COMMAND_LINE_OPTIONS.addOption(Option.builder(CL_OPT_GENERATE_VERBOSE_OUTPUT)
                                              .desc("Generate verbose output while crawling.").build());
+        COMMAND_LINE_OPTIONS.addOption(Option.builder(CL_OPT_CRAWL_REPEATEDLY).longOpt(CL_LONGOPT_CRAWL_REPEATEDLY).hasArg().argName("NUMTIMES")
+                                             .desc("Crawl the url NUMTIMES times and compute the average crawl time (used for benchmarking).").build());
     }
     
     private CommandLine commandLine;
@@ -77,8 +81,8 @@ public class CrawldaddyCommandLine {
         return this.inputUrl;
     }
     
-    public Integer getMaxInternalLinks() {
-        return getUnsignedIntValue(commandLine.getOptionValue(CL_OPT_MAX_INT_LINKS));
+    public int getMaxInternalLinks(int defaultValue) {
+        return getUnsignedIntValue(commandLine.getOptionValue(CL_OPT_MAX_INT_LINKS), defaultValue);
     }
     
     public boolean isMaxInternalLinksSet() {
@@ -97,15 +101,23 @@ public class CrawldaddyCommandLine {
         return this.commandLine.hasOption(CL_OPT_GENERATE_VERBOSE_OUTPUT);
     }
     
-    private Integer getUnsignedIntValue(String stringValue) {
+    public boolean isNumRepetitionsSet() {
+        return this.commandLine.hasOption(CL_OPT_CRAWL_REPEATEDLY);
+    }
+    
+    public int getNumRepetitions(int defaultValue) {
+        return getUnsignedIntValue(commandLine.getOptionValue(CL_OPT_CRAWL_REPEATEDLY), defaultValue);
+    }
+    
+    private int getUnsignedIntValue(String stringValue, int defaultValue) {
         if (stringValue == null) {
-            return null;
+            return defaultValue;
         }
         stringValue = stringValue.trim();
         try {
             return Integer.parseUnsignedInt(stringValue);
         } catch (NumberFormatException e) {
-            return null;
+            return defaultValue;
         }
     }
 }

@@ -16,6 +16,7 @@ public class Crawldaddy {
     }
     
     public Future<CrawldaddyResult> startCrawl() {
+        // TODO respect the params.numRepetitions value, compute aggregate result
         return ForkJoinPool.commonPool().submit(new Callable<CrawldaddyResult>() {
             @Override
             public CrawldaddyResult call() throws Exception {

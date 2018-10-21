@@ -37,19 +37,22 @@ public class CrawldaddyCommandLineTests {
     
     @Test
     public void testSetAllShortOptions() {
-        final Integer maxIntLinks = 1000;
+        final int maxIntLinks = 1000;
+        final int numRepetitions = 7;
         final boolean useShortOptions = true;
         String[] args = createCommandLineArgs(useShortOptions, 
                                               CrawldaddyCommandLine.CL_OPT_SHOW_EXT_LINKS,
                                               CrawldaddyCommandLine.CL_OPT_SHOW_EXT_SCRIPTS,
                                               CrawldaddyCommandLine.CL_OPT_GENERATE_VERBOSE_OUTPUT,
-                                              CrawldaddyCommandLine.CL_OPT_MAX_INT_LINKS + " " + maxIntLinks);
+                                              CrawldaddyCommandLine.CL_OPT_MAX_INT_LINKS + " " + maxIntLinks,
+                                              CrawldaddyCommandLine.CL_LONGOPT_CRAWL_REPEATEDLY + " " + numRepetitions);
         try {
             CrawldaddyCommandLine cl = parseAndAssertNonNullCommandLine(args);
             assertTrue("Show external links option not set", cl.isShowExternalLinksSet());
             assertTrue("Show external scripts option not set", cl.isShowExternalScriptsSet());
             assertTrue("Generate verbose output option not set", cl.isGenerateVerboseOutputSet());
-            assertEquals("Max internal links not set", maxIntLinks, cl.getMaxInternalLinks());
+            assertEquals("Max internal links not set", maxIntLinks, cl.getMaxInternalLinks(0));
+            assertEquals("Num repetitions not set", numRepetitions, cl.getNumRepetitions(0));
         } catch (RuntimeException e) {
             fail("Exception on running application with illegal value for option " + CrawldaddyCommandLine.CL_OPT_MAX_INT_LINKS + ": " + e.getMessage());
         }
@@ -57,17 +60,20 @@ public class CrawldaddyCommandLineTests {
     
     @Test
     public void testSetAllLongOptions() {
-        final Integer maxIntLinks = 14344;
+        final int maxIntLinks = 14344;
+        final int numRepetitions = 8;
         final boolean useShortOptions = false;
         String[] args = createCommandLineArgs(useShortOptions,
                                               CrawldaddyCommandLine.CL_LONGOPT_SHOW_EXT_LINKS,
                                               CrawldaddyCommandLine.CL_LONGOPT_SHOW_EXT_SCRIPTS,
-                                              CrawldaddyCommandLine.CL_LONGOPT_MAX_INT_LINKS + "=" + maxIntLinks);
+                                              CrawldaddyCommandLine.CL_LONGOPT_MAX_INT_LINKS + "=" + maxIntLinks,
+                                              CrawldaddyCommandLine.CL_LONGOPT_CRAWL_REPEATEDLY + "=" + numRepetitions);
         try {
             CrawldaddyCommandLine cl = parseAndAssertNonNullCommandLine(args);
             assertTrue("Show external links option not set", cl.isShowExternalLinksSet());
             assertTrue("Show external scripts option not set", cl.isShowExternalScriptsSet());
-            assertEquals("Max internal links not set", maxIntLinks, cl.getMaxInternalLinks());
+            assertEquals("Max internal links not set", maxIntLinks, cl.getMaxInternalLinks(0));
+            assertEquals("Num repetitions not set", numRepetitions, cl.getNumRepetitions(0));
         } catch (RuntimeException e) {
             fail("Exception on running application with illegal value for option " + CrawldaddyCommandLine.CL_OPT_MAX_INT_LINKS + ": " + e.getMessage());
         }
@@ -86,10 +92,11 @@ public class CrawldaddyCommandLineTests {
     
     @Test
     public void testSetBadMaxInternalLinks1() {
+        int expectedDefault = 10;
         String[] args = createCommandLineArgs(CrawldaddyCommandLine.CL_OPT_MAX_INT_LINKS + " nonintvalue");
         try {
             CrawldaddyCommandLine cl = parseAndAssertNonNullCommandLine(args);
-            assertNull("Max internal links set to non-null value", cl.getMaxInternalLinks());
+            assertEquals("Max internal links set to unexpected value", expectedDefault, cl.getMaxInternalLinks(expectedDefault));
         } catch (RuntimeException e) {
             fail("Exception on running application with illegal value for option " + CrawldaddyCommandLine.CL_OPT_MAX_INT_LINKS + ": " + e.getMessage());
         }
@@ -97,15 +104,40 @@ public class CrawldaddyCommandLineTests {
 
     @Test
     public void testSetBadMaxInternalLinks2() {
+        int expectedDefault = 5678;
         String[] args = createCommandLineArgs(CrawldaddyCommandLine.CL_OPT_MAX_INT_LINKS + " -123");
         try {
             CrawldaddyCommandLine cl = parseAndAssertNonNullCommandLine(args);
-            assertNull("Max internal links set to non-null value", cl.getMaxInternalLinks());
+            assertEquals("Max internal links set to unexpected value", expectedDefault, cl.getMaxInternalLinks(expectedDefault));
         } catch (RuntimeException e) {
             fail("Exception on running application with illegal value for option " + CrawldaddyCommandLine.CL_OPT_MAX_INT_LINKS + ": " + e.getMessage());
         }
     }
 
+    @Test
+    public void testSetBadNumRepetitions1() {
+        int expectedDefault = 10;
+        String[] args = createCommandLineArgs(CrawldaddyCommandLine.CL_OPT_CRAWL_REPEATEDLY + " nonintvalue");
+        try {
+            CrawldaddyCommandLine cl = parseAndAssertNonNullCommandLine(args);
+            assertEquals("Num repetitions set to unexpected value", expectedDefault, cl.getNumRepetitions(expectedDefault));
+        } catch (RuntimeException e) {
+            fail("Exception on running application with illegal value for option " + CrawldaddyCommandLine.CL_OPT_CRAWL_REPEATEDLY + ": " + e.getMessage());
+        }
+    }
+    
+    @Test
+    public void testSetBadNumRepetitions2() {
+        int expectedDefault = 5;
+        String[] args = createCommandLineArgs(CrawldaddyCommandLine.CL_OPT_CRAWL_REPEATEDLY + " -42");
+        try {
+            CrawldaddyCommandLine cl = parseAndAssertNonNullCommandLine(args);
+            assertEquals("Num repetitions set to unexpected value", expectedDefault, cl.getNumRepetitions(expectedDefault));
+        } catch (RuntimeException e) {
+            fail("Exception on running application with illegal value for option " + CrawldaddyCommandLine.CL_OPT_CRAWL_REPEATEDLY + ": " + e.getMessage());
+        }
+    }
+    
     private String[] createCommandLineArgs(String... args) {
         return createCommandLineArgs(true, args);
     }
