@@ -46,9 +46,21 @@ public class CrawldaddyApp {
     }
     
     private void processResults(CrawldaddyResultSet results, CrawldaddyCommandLine commandLine) {
-        for (CrawldaddyResult result : results) {
-            processResult(result, commandLine);
+        CrawldaddyResult resultToDisplay = getResultToDisplay(results);
+        processResult(resultToDisplay, commandLine);
+        showCrawlTimes(results);
+    }
+    
+    private CrawldaddyResult getResultToDisplay(CrawldaddyResultSet results) {
+        CrawldaddyResult resultToDisplay = getFirstSuccessfulResult(results);
+        if (resultToDisplay == null) {
+            resultToDisplay = results.getFirstResult();
         }
+        return resultToDisplay;
+    }
+    
+    private CrawldaddyResult getFirstSuccessfulResult(CrawldaddyResultSet results) {
+        return results.stream().filter(result -> result.isHttpStatusOK()).findFirst().orElse(null);
     }
     
     private void processResult(CrawldaddyResult result, CrawldaddyCommandLine commandLine) {
@@ -75,7 +87,6 @@ public class CrawldaddyApp {
             if (commandLine.isShowExternalScriptsSet()) {
                 showSetContents("EXTERNAL SCRIPTS", extScripts);
             }
-            showCrawlTime(result.getCrawlTime());
         }
     }
     
@@ -88,20 +99,57 @@ public class CrawldaddyApp {
         }
     }
     
-    private void showCrawlTime(Duration crawlTime) {
-        StringBuilder ct = new StringBuilder("Total crawl time: ");
-        if (crawlTime.toHours() > 0) {
-            ct.append(crawlTime.toHours()).append(" hour(s) ");
-        } else if (crawlTime.toMinutes() > 0 ) {
-            ct.append(crawlTime.toMinutes()).append(" minute(s) ");
+    private void showCrawlTimes(CrawldaddyResultSet results) {
+        if (results.size() == 1) {
+            CrawldaddyResult result = results.getFirstResult();
+            System.out.println("Total crawl time: " + formatDuration(result.getCrawlTime()));
+        } else {
+            showIndividualCrawlTimes(results);
+            showAverageCrawlTime(results);
+        }
+    }
+    
+    private void showIndividualCrawlTimes(CrawldaddyResultSet results) {
+        int pass = 1;
+        for (CrawldaddyResult result : results) {
+            System.out.printf("PASS %01d: %16s\n", pass, formatSummaryOfCrawlResult(result));
+            pass++;
+        }
+    }
+    
+    private String formatSummaryOfCrawlResult(CrawldaddyResult result) {
+        String resultSummary = "";
+        if (result.hasPageFetchException()) {
+            resultSummary = "EXCEPTION";
+        } else if (!result.isHttpStatusOK()) {
+            resultSummary = "HTTP " + result.getHttpStatusCode();
+        } else {
+            resultSummary = formatDuration(result.getCrawlTime());
+        }
+        return resultSummary;
+    }
+    
+    private void showAverageCrawlTime(CrawldaddyResultSet results) {
+        Duration avgCrawlTime = results.getAverageCrawlTime();
+        if (!avgCrawlTime.isZero()) {
+            System.out.println("Average crawl time: " + formatDuration(avgCrawlTime));
+        }
+    }
+    
+    private String formatDuration(Duration duration) {
+        StringBuilder ct = new StringBuilder();
+        if (duration.toHours() > 0) {
+            ct.append(duration.toHours()).append(" hour(s) ");
+        } else if (duration.toMinutes() > 0 ) {
+            ct.append(duration.toMinutes()).append(" minute(s) ");
         } 
-        long millis = crawlTime.toMillis();
+        long millis = duration.toMillis();
         long secs =  millis / 1000;
         millis %= 1000;
         if (secs > 0) {
             ct.append(secs).append(".").append(millis).append(" second(s) ");
         }
-        System.out.println(ct.toString());
+        return ct.toString();
     }
     
     public static void main(String[] args) {

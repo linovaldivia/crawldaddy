@@ -7,7 +7,7 @@
         </Console>
     </Appenders>
     <Loggers>
-        <AsyncRoot level="DEBUG" additivity="false">
+        <AsyncRoot level="INFO" additivity="false">
             <AppenderRef ref="console" />
         </AsyncRoot>
     </Loggers>

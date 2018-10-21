@@ -2,9 +2,14 @@ package org.lagalag.crawldaddy;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class CrawldaddyResultSet implements Iterable<CrawldaddyResult> {
     List<CrawldaddyResult> results = new ArrayList<>();
+
+    public CrawldaddyResult getFirstResult() {
+        return results.get(0);
+    }
     
     public void addResult(CrawldaddyResult result) {
         if (result == null) {
@@ -16,6 +21,14 @@ public class CrawldaddyResultSet implements Iterable<CrawldaddyResult> {
     @Override
     public Iterator<CrawldaddyResult> iterator() {
         return results.iterator();
+    }
+    
+    public Stream<CrawldaddyResult> stream() {
+        return results.stream();
+    }
+    
+    public int size() {
+        return results.size();
     }
     
     public Duration getAverageCrawlTime() {

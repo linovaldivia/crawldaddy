@@ -34,12 +34,14 @@ public class Crawldaddy {
     private CrawldaddyResultSet doCrawl() {
         CrawldaddyResultSet results = new CrawldaddyResultSet();
         int numCrawlsToPerform = params.getNumRepetitions();
-        log.debug("Performing crawl " + numCrawlsToPerform + " time(s)");
+        log.info("Performing crawl " + numCrawlsToPerform + " time(s)");
         for (int pass = 0; pass < numCrawlsToPerform; pass++) {
             if (pass > 0) {
                 waitArbitrarilyBeforeProceeding();
             }
+            log.info("Pass " + (pass + 1) + " start");
             CrawldaddyResult result = doSingleCrawl();
+            log.info("Pass " + (pass + 1) + " done");
             results.addResult(result);
         }
         return results;
