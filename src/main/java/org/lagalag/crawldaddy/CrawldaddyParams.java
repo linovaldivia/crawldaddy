@@ -11,16 +11,19 @@ public class CrawldaddyParams {
     public static final int MAX_CRAWL_REPETITIONS = 10;
     
     private String url;
+    private String initialUrl;
     private int maxInternalLinks = DEFAULT_MAX_INTERNAL_LINKS;
     private boolean showVisitedLink = DEFAULT_SHOW_VISITED_LINK;
     private int numRepetitions = DEFAULT_CRAWL_REPETITIONS;
     
     public CrawldaddyParams(String url) {
         this.url = url;
+        this.initialUrl = url;
     }
     
     public CrawldaddyParams(String url, CrawldaddyParams paramsToCopy) {
         this.url = url;
+        this.initialUrl = paramsToCopy.initialUrl;
         this.maxInternalLinks = paramsToCopy.maxInternalLinks;
         this.showVisitedLink = paramsToCopy.showVisitedLink;
         this.numRepetitions = paramsToCopy.numRepetitions;
@@ -28,6 +31,10 @@ public class CrawldaddyParams {
     
     public String getUrl() {
         return url;
+    }
+    
+    public String getInitialUrl() {
+        return initialUrl;
     }
 
     public int getMaxInternalLinks() {
