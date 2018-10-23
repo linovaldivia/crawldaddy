@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.Set;
 
 import org.lagalag.crawldaddy.pages.PageFetchException;
+import org.lagalag.crawldaddy.util.URLUtils;
 
 /**
  * Main command-line application class: handles command-line parsing, displaying output, etc.
@@ -42,6 +43,7 @@ public class CrawldaddyApp {
         params.setMaxInternalLinks(commandLine.getMaxInternalLinks(CrawldaddyParams.DEFAULT_MAX_INTERNAL_LINKS));
         params.setShowVisitedLink(commandLine.isGenerateVerboseOutputSet());
         params.setNumRepetitions(commandLine.getNumRepetitions(CrawldaddyParams.DEFAULT_CRAWL_REPETITIONS));
+        params.setInternalLinksScope(URLUtils.getHost(commandLine.getInputUrl()));
         return params;
     }
     

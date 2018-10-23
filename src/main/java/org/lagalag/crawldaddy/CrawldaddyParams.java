@@ -1,5 +1,7 @@
 package org.lagalag.crawldaddy;
 
+import org.lagalag.crawldaddy.util.URLUtils;
+
 /**
  * Class that encapsulates parameters used to control the crawler internals.
  *
@@ -11,30 +13,27 @@ public class CrawldaddyParams {
     public static final int MAX_CRAWL_REPETITIONS = 10;
     
     private String url;
-    private String initialUrl;
+    private String internalLinksScope;
     private int maxInternalLinks = DEFAULT_MAX_INTERNAL_LINKS;
     private boolean showVisitedLink = DEFAULT_SHOW_VISITED_LINK;
     private int numRepetitions = DEFAULT_CRAWL_REPETITIONS;
     
     public CrawldaddyParams(String url) {
         this.url = url;
-        this.initialUrl = url;
-    }
-    
-    public CrawldaddyParams(String url, CrawldaddyParams paramsToCopy) {
-        this.url = url;
-        this.initialUrl = paramsToCopy.initialUrl;
-        this.maxInternalLinks = paramsToCopy.maxInternalLinks;
-        this.showVisitedLink = paramsToCopy.showVisitedLink;
-        this.numRepetitions = paramsToCopy.numRepetitions;
+        // By default, only links to resources in the same host are considered "internal links".
+        internalLinksScope = URLUtils.getHost(url);
     }
     
     public String getUrl() {
         return url;
     }
     
-    public String getInitialUrl() {
-        return initialUrl;
+    public String getInternalLinksScope() {
+        return internalLinksScope;
+    }
+
+    public void setInternalLinksScope(String internalLinksScope) {
+        this.internalLinksScope = internalLinksScope;
     }
 
     public int getMaxInternalLinks() {

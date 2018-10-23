@@ -30,24 +30,24 @@ public class CrawldaddyAction extends RecursiveAction implements PageFetchConsum
     
     private static final List<String> UNSUPPORTED_TYPES = Arrays.asList("jpg", "pdf", "png", "gif");
     
+    private String myUrl;
     private CrawldaddyParams params;
     private CrawldaddyResult crawldaddyResult;
-    private String internalLinksScope;
     private boolean isInitiatingAction;
 
     public CrawldaddyAction(CrawldaddyParams params) {
+        this.myUrl = params.getUrl();
         this.params = params;
+        this.crawldaddyResult = new CrawldaddyResult(myUrl);
         this.isInitiatingAction = true;
-        this.internalLinksScope = URLUtils.getHost(params.getUrl());
-        this.crawldaddyResult = new CrawldaddyResult(params.getUrl());
     }
     
-    /* Used only when following links from a page that has been downloaded */
-    private CrawldaddyAction(CrawldaddyParams params, CrawldaddyResult result) {
+    /* Used only when crawling links from a page that has been downloaded */
+    private CrawldaddyAction(String url, CrawldaddyParams params, CrawldaddyResult result) {
+        this.myUrl = url;
         this.params = params;
         this.crawldaddyResult = result;
         this.isInitiatingAction = false;
-        this.internalLinksScope = URLUtils.getHost(params.getUrl());
     }
     
     public CrawldaddyResult getResult() {
@@ -56,19 +56,18 @@ public class CrawldaddyAction extends RecursiveAction implements PageFetchConsum
     
     @Override
     protected void compute() {
-        String url = params.getUrl();
         if (params.getShowVisitedLink()) {
-            System.out.println("VISITING: " + url);
+            System.out.println("VISITING: " + myUrl);
         }
-        LOGGER.debug("VISITING: " + url);
-        fetchPageAtUrl(url);
+        LOGGER.debug("VISITING: " + myUrl);
+        fetchPageAtMyUrl();
     }
     
-    private void fetchPageAtUrl(String url) {
+    private void fetchPageAtMyUrl() {
         Instant startTime = (isInitiatingAction ? Instant.now() : null);
         try {
             PageFetchService pageFetchService = PageFetchServiceLocator.getService();
-            pageFetchService.fetch(url, this);
+            pageFetchService.fetch(myUrl, this);
         } catch (PageFetchException e) {
             LOGGER.error(e.getMessage());
             if (isInitiatingAction) {
@@ -100,7 +99,6 @@ public class CrawldaddyAction extends RecursiveAction implements PageFetchConsum
     
     private Collection<CrawldaddyAction> processLinkUrls(List<String> linkUrls) {
         Collection<CrawldaddyAction> childCrawlers = new ArrayList<>();
-        String myUrl = params.getUrl();
         String baseUrl = URLUtils.getBaseUrl(myUrl);
         for (String linkUrl : linkUrls) {
             linkUrl = URLUtils.canonicalize(linkUrl, baseUrl);
@@ -123,12 +121,11 @@ public class CrawldaddyAction extends RecursiveAction implements PageFetchConsum
             skipProcessing = true;
         }
         // If the link is a self-reference, skip it.
-        String myUrl = params.getUrl();
         if (myUrl.equalsIgnoreCase(linkUrl)) {
             skipProcessing = true;
         }
-        // If the link is a reference to the initial url, skip it. 
-        String initialUrl = params.getInitialUrl();
+        // If the link points back to the initial url, skip it. 
+        String initialUrl = params.getUrl();
         if (initialUrl.equalsIgnoreCase(linkUrl)) {
             skipProcessing = true;
         }
@@ -139,7 +136,7 @@ public class CrawldaddyAction extends RecursiveAction implements PageFetchConsum
     }
     
     private boolean isInternalLink(String url) {
-        return hasSameHost(url, internalLinksScope);
+        return hasSameHost(url, params.getInternalLinksScope());
     }
     
     private void handleNonOKHttpStatus(String url, int httpStatusCode) {
@@ -155,7 +152,7 @@ public class CrawldaddyAction extends RecursiveAction implements PageFetchConsum
         CrawldaddyAction childCrawlerForLinkUrl = null;
         // Create a child crawler iff we haven't visited/planned to visit this url.
         if (crawldaddyResult.checkAndAddInternalLink(linkUrl, params.getMaxInternalLinks())) {
-            childCrawlerForLinkUrl = new CrawldaddyAction(new CrawldaddyParams(linkUrl, params), crawldaddyResult);
+            childCrawlerForLinkUrl = new CrawldaddyAction(linkUrl, params, crawldaddyResult);
         }
         return Optional.ofNullable(childCrawlerForLinkUrl);
     }
