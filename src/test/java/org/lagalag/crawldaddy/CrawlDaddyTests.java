@@ -17,6 +17,7 @@ public class CrawldaddyTests {
     public void testNullUrl() {
         CrawldaddyResult cdr = doCrawl(null);
         assertNotNull("Crawling url=null returns null result", cdr);
+        assertTrue("Null url did not result in page fetch exception", cdr.hasPageFetchException());
     }
     
     @Test
