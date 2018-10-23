@@ -28,7 +28,8 @@ public class CrawldaddyAction extends RecursiveAction implements PageFetchConsum
     private static final long serialVersionUID = 1L;
     private static final Logger LOGGER = LogManager.getLogger();
     
-    private static final List<String> UNSUPPORTED_TYPES = Arrays.asList("jpg", "pdf", "png", "gif", "zip", "tar", "jar", "gz");
+    private static final List<String> UNSUPPORTED_TYPES = Arrays.asList("jpg", "pdf", "png", "gif", "zip", 
+                                                                        "tar", "jar", "gz", "svg", "ppt", "pptx");
     
     private String myUrl;
     private CrawldaddyParams params;
