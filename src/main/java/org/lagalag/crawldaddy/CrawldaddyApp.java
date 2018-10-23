@@ -39,12 +39,20 @@ public class CrawldaddyApp {
     }
     
     private CrawldaddyParams createParams(CrawldaddyCommandLine commandLine) {
+        if (requiredParamsMissing(commandLine)) {
+            return null;
+        }
         CrawldaddyParams params = new CrawldaddyParams(commandLine.getInputUrl());
         params.setMaxInternalLinks(commandLine.getMaxInternalLinks(CrawldaddyParams.DEFAULT_MAX_INTERNAL_LINKS));
         params.setShowVisitedLink(commandLine.isGenerateVerboseOutputSet());
         params.setNumRepetitions(commandLine.getNumRepetitions(CrawldaddyParams.DEFAULT_CRAWL_REPETITIONS));
         params.setInternalLinksScope(URLUtils.getHost(commandLine.getInputUrl()));
         return params;
+    }
+    
+    private boolean requiredParamsMissing(CrawldaddyCommandLine commandLine) {
+        String inputUrl = commandLine.getInputUrl();
+        return (inputUrl == null);
     }
     
     private void processResults(CrawldaddyResultSet results, CrawldaddyCommandLine commandLine) {
