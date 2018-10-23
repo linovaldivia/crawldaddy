@@ -140,10 +140,15 @@ public class CrawldaddyApp {
     
     private String formatDuration(Duration duration) {
         StringBuilder ct = new StringBuilder();
-        if (duration.toHours() > 0) {
-            ct.append(duration.toHours()).append(" hour(s) ");
-        } else if (duration.toMinutes() > 0 ) {
-            ct.append(duration.toMinutes()).append(" minute(s) ");
+        long hours = duration.toHours();
+        if (hours > 0) {
+            ct.append(hours).append(" hour(s) ");
+            duration = duration.minusHours(hours);
+        } 
+        long mins = duration.toMinutes();
+        if (mins > 0) {
+            ct.append(mins).append(" minute(s) ");
+            duration = duration.minusMinutes(mins);
         } 
         long millis = duration.toMillis();
         long secs =  millis / 1000;
